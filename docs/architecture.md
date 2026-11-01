@@ -15,13 +15,15 @@ flowchart LR
     buttons["5 buttons<br/>(4 fingers + thumb)<br/>prototype: 12 mm tactile<br/>build: MX-style, hot-swap"]
     subgraph pico["Raspberry Pi Pico (RP2040)"]
         direction LR
-        scan["Button scan<br/>(CircuitPython)"]
-        chord["Chord detection<br/>(handful code)"]
+        scan["Button scan + 5 ms debounce<br/>(board layer)"]
+        chord["Chord detection<br/>(chord engine)"]
         mode["Mode: macOS / Windows<br/>(remembered)"]
-        hid["usb_hid + adafruit_hid"]
+        hid["USB keyboard reports<br/>(built-in usb_hid)"]
         led["Onboard LED"]
         scan --> chord --> mode --> hid
         mode -- GPIO --> led
+        nvm["Saved mode<br/>(nvm)"]
+        mode <--> nvm
     end
     config["mappings.py<br/>(on CIRCUITPY drive)"]
     host["Computer"]
@@ -59,8 +61,8 @@ stateDiagram-v2
   for the left hand first and mirrorable, tilted by swappable printed wedges
   from 0° to 30° and beyond. See [0011](decisions/0011-grip-shell.md).
 - **CircuitPython firmware**: reads the buttons, detects chords and sends key
-  presses with `usb_hid` and `adafruit_hid`. See
-  [0002](decisions/0002-circuitpython-firmware.md).
+  presses through the built-in `usb_hid` module, with no downloaded libraries.
+  See [0013](decisions/0013-circuitpython-with-built-in-modules-only.md).
 - **Mapping modes**: a macOS set and a Windows set, toggled by holding all
   five buttons. The onboard LED shows the active mode, and the mode survives a
   power cycle. See [0004](decisions/0004-macos-and-windows-modes.md).
@@ -76,6 +78,44 @@ stateDiagram-v2
   Most actions fire once when held; backspace and delete word repeat. Holding
   all five toggles the mode; unmapped chords do nothing, so adding the
   remaining fingers cancels. See [0009](decisions/0009-default-mappings.md).
+
+## Firmware layout
+
+The firmware lives in `firmware/` and is copied to the CIRCUITPY drive with
+`tools/deploy.py`, which downloads nothing, removes files the firmware no
+longer has and leaves an existing `mappings.py` in place.
+
+- `code.py`: starts the app on the Pico.
+- `mappings.py`: timings, the mode chord and both mapping sets. Key names
+  such as `CMD+SHIFT+4` are read by the firmware, so the file needs no
+  imports.
+- `handful/` chord engine, plain Python with no hardware imports, tested on
+  the computer (see Development in the README):
+  - `debounce.py`: per-button debounce.
+  - `chords.py`: tap, hold and repeat events.
+  - `keypad.py`: turns events into key presses for the active mode and
+    toggles the mode.
+  - `config.py` and `keys.py`: read and check `mappings.py`, and turn key
+    names into USB HID usage IDs. `config.BUTTONS` sets the button order
+    everywhere.
+  - `app.py`: the main loop. It loads `mappings.py`, feeds button reads to
+    the keypad, sends keys and retries a release when USB is busy. It gets
+    the board passed in, so tests run it with a fake board.
+  - `hid.py`: builds USB keyboard reports.
+- `handful/pico.py` board layer: button pins, the LED, the USB keyboard
+  device and the saved mode in `microcontroller.nvm`. Tests run it with
+  stand-ins for the CircuitPython modules.
+
+`tools/cheatsheet.py` draws the printable [cheat sheet](cheatsheet.svg) and
+the README [chords banner](chords.svg) from `mappings.py`, naming each action
+after the comment on its line. The drawing code is in `tools/drawings/`. Both
+drawings embed Permanent Marker and Coming Soon (Apache-2.0, in
+`tools/drawings/fonts/`), cut down to the letters they use, so they look the
+same on every computer. A test fails when either drawing is out of date.
+
+The LED is on in macOS mode, off in Windows mode, and blinks fast when
+`mappings.py` has a problem. A held repeating action fires once at the hold,
+then after another 400 ms repeats every 50 ms, like a normal keyboard.
 
 ## Interfaces
 

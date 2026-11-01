@@ -17,7 +17,8 @@
   reasoning.
 
 For any architecture discussion or decision, use the `architecture-drilldown`
-skill.
+skill. When chords, key names or timings change, use the `update-mappings`
+skill so the drawings and docs stay in step.
 
 ## Rules
 

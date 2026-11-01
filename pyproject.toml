@@ -1,0 +1,23 @@
+[tool.ruff]
+line-length = 120
+# The oldest syntax ruff knows; the firmware also has to run on CircuitPython.
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["handful", "drawings", "_path", "fakes", "test_config", "deploy", "cheatsheet"]
+
+[tool.coverage.run]
+branch = true
+source = ["firmware", "tools"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+skip_covered = true
+
+[tool.ruff.lint.per-file-ignores]
+# Tests name chords by finger letter: T, I, M, R, P.
+"tests/*" = ["E741"]
