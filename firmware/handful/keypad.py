@@ -8,8 +8,10 @@ SET_MODE = "set_mode"
 
 
 class Keypad:
-    def __init__(self, config, mode):
+    def __init__(self, config, mode, usage=None):
+        """`usage`, when given, counts every tap and hold, mapped or not."""
         self.config = config
+        self.usage = usage
         self.mode = mode if mode in MODES else MODES[0]
         self.detector = ChordDetector(
             config.hold_ms, config.repeat_delay_ms, config.repeat_interval_ms
@@ -19,6 +21,8 @@ class Keypad:
         """Feed the debounced button bitmask; returns a list of (SEND, keys) or (SET_MODE, mode)."""
         out = []
         for event, chord in self.detector.update(pressed, now):
+            if self.usage is not None and event in (TAP, HOLD):
+                self.usage.record(event, chord)
             if chord == self.config.mode_chord:
                 if event == HOLD:
                     self.mode = MODES[(MODES.index(self.mode) + 1) % len(MODES)]

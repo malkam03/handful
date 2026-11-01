@@ -1,5 +1,6 @@
-"""Board layer for a wired Raspberry Pi Pico: buttons, LED, USB keyboard and saved mode."""
+"""Board layer for a wired Raspberry Pi Pico: buttons, LED, USB keyboard, serial console and nvm."""
 
+import sys
 import time
 
 import board
@@ -10,12 +11,18 @@ import usb_hid
 
 from handful.config import BUTTONS
 from handful.hid import Keyboard
+from handful.usage import SIZE as USAGE_SIZE
 
 # Each button connects its pin to GND.
 PINS = {"T": board.GP2, "I": board.GP3, "M": board.GP4, "R": board.GP5, "P": board.GP6}
 ERROR_BLINK_S = 0.1
 
+# nvm layout: byte 0 is the mode, then a marker and the chord usage counts.
 _MODE_BYTES = {"macos": ord("M"), "windows": ord("W")}
+_USAGE_MARK = b"HU\x01"
+_USAGE_START = 1
+_USAGE_END = _USAGE_START + len(_USAGE_MARK) + USAGE_SIZE
+MAX_LINE = 64
 
 
 class Pico:
@@ -30,6 +37,7 @@ class Pico:
         self._led = digitalio.DigitalInOut(board.LED)
         self._led.switch_to_output(value=False)
         self._keyboard = None
+        self._line = ""
 
     def now(self):
         return supervisor.ticks_ms()
@@ -62,6 +70,29 @@ class Pico:
 
     def save_mode(self, mode):
         microcontroller.nvm[0] = _MODE_BYTES[mode]
+
+    def load_usage(self):
+        """The saved usage counts, or None when nvm holds none."""
+        data = bytes(microcontroller.nvm[_USAGE_START:_USAGE_END])
+        if data[:len(_USAGE_MARK)] != _USAGE_MARK:
+            return None
+        return data[len(_USAGE_MARK):]
+
+    def save_usage(self, data):
+        # One slice write, so the flash is erased once per save.
+        microcontroller.nvm[_USAGE_START:_USAGE_END] = _USAGE_MARK + data
+
+    def read_line(self):
+        """A line typed on the serial console, or None. Never waits."""
+        while supervisor.runtime.serial_bytes_available:
+            char = sys.stdin.read(1)
+            if char in "\r\n":
+                line, self._line = self._line.strip(), ""
+                if line:
+                    return line
+            elif len(self._line) < MAX_LINE:
+                self._line += char
+        return None
 
     def show_mode(self, mode):
         """LED on for macOS, off for Windows."""

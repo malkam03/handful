@@ -44,13 +44,15 @@ def install():
     digitalio.DigitalInOut = DigitalInOut
     digitalio.Pull = types.SimpleNamespace(UP="up")
     microcontroller = types.ModuleType("microcontroller")
-    microcontroller.nvm = bytearray(8)
+    microcontroller.nvm = bytearray(4096)
     supervisor = types.ModuleType("supervisor")
     supervisor.ticks_ms = lambda: 1234
+    supervisor.runtime = types.SimpleNamespace(serial_bytes_available=0)
     usb_hid = types.ModuleType("usb_hid")
     keyboard = HIDDevice(0x01, 0x06)
     usb_hid.devices = [HIDDevice(0x01, 0x02), keyboard]
     for module in (board, digitalio, microcontroller, supervisor, usb_hid):
         sys.modules[module.__name__] = module
     DigitalInOut.instances = []
-    return types.SimpleNamespace(board=board, microcontroller=microcontroller, keyboard=keyboard)
+    return types.SimpleNamespace(
+        board=board, microcontroller=microcontroller, supervisor=supervisor, keyboard=keyboard)

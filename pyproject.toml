@@ -7,7 +7,7 @@ target-version = "py39"
 select = ["E", "F", "W", "I", "B"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["handful", "drawings", "_path", "fakes", "test_config", "deploy", "cheatsheet"]
+known-first-party = ["handful", "drawings", "_path", "fakes", "test_config", "deploy", "cheatsheet", "usage"]
 
 [tool.coverage.run]
 branch = true

@@ -6,6 +6,7 @@ import unittest
 import _path  # noqa: F401
 from handful import app
 from handful.keys import parse_keys
+from handful.usage import Usage
 from test_config import shipped_mappings
 
 M, ALL = 4, 31
@@ -23,6 +24,9 @@ class FakeBoard:
         self.fail_press = 0
         self.fail_release = 0
         self.blinking = False
+        self.usage = None
+        self.usage_saves = 0
+        self.lines = []
 
     def now(self):
         return self.time
@@ -53,6 +57,16 @@ class FakeBoard:
 
     def blink_error(self):
         self.blinking = True
+
+    def load_usage(self):
+        return self.usage
+
+    def save_usage(self, data):
+        self.usage = data
+        self.usage_saves += 1
+
+    def read_line(self):
+        return self.lines.pop(0) if self.lines else None
 
 
 def quiet():
@@ -98,6 +112,81 @@ class AppTest(unittest.TestCase):
         self.drive(0, 20)
         self.assertFalse(self.app.release_pending)
         self.assertEqual(self.board.log, [("press", parse_keys("CMD+V")), ("release_all",)])
+
+
+def counting_mappings():
+    m = shipped_mappings()
+    m.COUNT_CHORDS = True
+    return m
+
+
+class UsageTest(unittest.TestCase):
+    def start(self, mappings, board=None):
+        self.board = board or FakeBoard()
+        with quiet():
+            self.app = app.App(self.board, app.load_settings(mappings))
+
+    def drive(self, buttons, ms):
+        self.board.buttons = buttons
+        for _ in range(ms):
+            self.board.time += 1
+            self.app.step()
+
+    def command(self, line):
+        self.board.lines.append(line)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.app.step()
+        return out.getvalue().splitlines()
+
+    def test_off_by_default_counts_nothing_and_never_saves(self):
+        self.start(shipped_mappings)
+        with quiet():
+            self.drive(M, 20)
+            self.drive(0, app.USAGE_SAVE_MS + 10)
+        self.assertEqual(self.command("usage"), ["usage counting off", "usage end"])
+        self.assertEqual(self.board.usage_saves, 0)
+
+    def test_counts_and_saves_a_minute_after_the_first_new_count(self):
+        self.start(counting_mappings)
+        self.drive(0, 5000)
+        self.drive(M, 20)
+        self.drive(0, app.USAGE_SAVE_MS - 30)
+        self.assertEqual(self.board.usage_saves, 0)
+        self.drive(0, 40)
+        self.assertEqual(self.board.usage_saves, 1)
+        self.drive(0, app.USAGE_SAVE_MS * 2)
+        self.assertEqual(self.board.usage_saves, 1)
+        self.assertEqual(Usage(self.board.usage).used(), [(M, 1, 0)])
+
+    def test_reports_counts_including_unsaved_ones(self):
+        self.start(counting_mappings)
+        with quiet():
+            self.drive(ALL, 450)
+        self.drive(0, 20)
+        self.drive(M, 20)
+        self.drive(0, 20)
+        self.assertEqual(
+            self.command("usage"), ["usage counting on", "usage M 1 0", "usage T+I+M+R+P 0 1", "usage end"])
+
+    def test_continues_from_saved_counts(self):
+        saved = Usage()
+        saved.record("tap", M)
+        board = FakeBoard()
+        board.usage = saved.to_bytes()
+        self.start(counting_mappings, board)
+        self.assertEqual(self.command("usage")[1], "usage M 1 0")
+
+    def test_reset_clears_and_saves_right_away(self):
+        self.start(counting_mappings)
+        self.drive(M, 20)
+        self.drive(0, 20)
+        self.assertEqual(self.command("usage reset"), ["usage reset", "usage counting on", "usage end"])
+        self.assertEqual(Usage(self.board.usage).used(), [])
+
+    def test_unknown_command_gets_a_hint(self):
+        self.start(shipped_mappings)
+        self.assertIn("unknown command", self.command("hello")[0])
 
 
 class LoadSettingsTest(unittest.TestCase):

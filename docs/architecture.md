@@ -22,15 +22,17 @@ flowchart LR
         led["Onboard LED"]
         scan --> chord --> mode --> hid
         mode -- GPIO --> led
-        nvm["Saved mode<br/>(nvm)"]
+        nvm["Saved mode and<br/>chord counts (nvm)"]
         mode <--> nvm
+        chord -- "taps and holds<br/>(COUNT_CHORDS on)" --> nvm
     end
     config["mappings.py<br/>(on CIRCUITPY drive)"]
-    host["Computer"]
+    host["Computer<br/>(tools/usage.py reads the counts)"]
 
     buttons -- "GP2–GP6, active low" --> scan
     config --> mode
     hid -- USB HID --> host
+    host -- "USB serial:<br/>usage / usage reset" --> nvm
     host -- "5 V (USB)" --> pico
 ```
 
@@ -78,6 +80,11 @@ stateDiagram-v2
   Most actions fire once when held; backspace and delete word repeat. Holding
   all five toggles the mode; unmapped chords do nothing, so adding the
   remaining fingers cancels. See [0009](decisions/0009-default-mappings.md).
+- **Chord usage counts**: with `COUNT_CHORDS = True` in `mappings.py`, the
+  Pico counts how often each chord is tapped and held, with no order or
+  times, and saves the totals to nvm at most once a minute. Off by default to
+  spare the flash. `tools/usage.py` reads and clears them over serial. See
+  [0014](decisions/0014-opt-in-chord-usage-counts.md).
 
 ## Firmware layout
 
@@ -86,25 +93,28 @@ The firmware lives in `firmware/` and is copied to the CIRCUITPY drive with
 longer has and leaves an existing `mappings.py` in place.
 
 - `code.py`: starts the app on the Pico.
-- `mappings.py`: timings, the mode chord and both mapping sets. Key names
-  such as `CMD+SHIFT+4` are read by the firmware, so the file needs no
-  imports.
+- `mappings.py`: timings, the mode chord, the `COUNT_CHORDS` switch and
+  both mapping sets. Key names such as `CMD+SHIFT+4` are read by the
+  firmware, so the file needs no imports.
 - `handful/` chord engine, plain Python with no hardware imports, tested on
   the computer (see Development in the README):
   - `debounce.py`: per-button debounce.
   - `chords.py`: tap, hold and repeat events.
   - `keypad.py`: turns events into key presses for the active mode and
     toggles the mode.
+  - `usage.py`: the chord usage counts and their saved form.
   - `config.py` and `keys.py`: read and check `mappings.py`, and turn key
     names into USB HID usage IDs. `config.BUTTONS` sets the button order
     everywhere.
   - `app.py`: the main loop. It loads `mappings.py`, feeds button reads to
-    the keypad, sends keys and retries a release when USB is busy. It gets
-    the board passed in, so tests run it with a fake board.
+    the keypad, sends keys, retries a release when USB is busy, saves the
+    usage counts and answers `usage` and `usage reset` on the serial
+    console. It gets the board passed in, so tests run it with a fake board.
   - `hid.py`: builds USB keyboard reports.
 - `handful/pico.py` board layer: button pins, the LED, the USB keyboard
-  device and the saved mode in `microcontroller.nvm`. Tests run it with
-  stand-ins for the CircuitPython modules.
+  device, serial console input, and the saved mode (byte 0) and usage counts
+  (after it) in `microcontroller.nvm`. Tests run it with stand-ins for the
+  CircuitPython modules.
 
 `tools/cheatsheet.py` draws the printable [cheat sheet](cheatsheet.svg) and
 the README [chords banner](chords.svg) from `mappings.py`, naming each action
@@ -112,6 +122,10 @@ after the comment on its line. The drawing code is in `tools/drawings/`. Both
 drawings embed Permanent Marker and Coming Soon (Apache-2.0, in
 `tools/drawings/fonts/`), cut down to the letters they use, so they look the
 same on every computer. A test fails when either drawing is out of date.
+
+`tools/usage.py` asks the Pico for its chord counts over the serial console
+and prints them ranked, with the mapped chords not used yet and the unmapped
+chords pressed anyway. `--reset` clears them.
 
 The LED is on in macOS mode, off in Windows mode, and blinks fast when
 `mappings.py` has a problem. A held repeating action fires once at the hold,
@@ -122,7 +136,9 @@ then after another 400 ms repeats every 50 ms, like a normal keyboard.
 - Buttons to Pico: each button between its own GPIO and GND, internal
   pull-ups, active low, 5 ms debounce. Thumb GP2, index GP3, middle GP4,
   ring GP5, pinky GP6. See [0008](decisions/0008-direct-gpio-wiring.md).
-- Pico to computer: a USB cable carrying a HID keyboard, no drivers needed.
+- Pico to computer: a USB cable carrying a HID keyboard, no drivers needed,
+  and CircuitPython's serial console, where the firmware reports problems and
+  answers `usage` and `usage reset`.
   The firmware keeps the chord engine and mappings apart from a board layer
   (pins, LED, HID), so a wireless board can be added later. See
   [0012](decisions/0012-wired-usb.md).

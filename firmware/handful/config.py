@@ -19,12 +19,13 @@ class Action:
 
 
 class Config:
-    def __init__(self, hold_ms, repeat_delay_ms, repeat_interval_ms, mode_chord, sets):
+    def __init__(self, hold_ms, repeat_delay_ms, repeat_interval_ms, mode_chord, sets, count_chords=False):
         self.hold_ms = hold_ms
         self.repeat_delay_ms = repeat_delay_ms
         self.repeat_interval_ms = repeat_interval_ms
         self.mode_chord = mode_chord
         self.sets = sets
+        self.count_chords = count_chords
 
 
 def parse_chord(text):
@@ -75,6 +76,11 @@ def load(module):
     repeat_delay_ms = _setting(module, "REPEAT_DELAY_MS", 400, errors)
     repeat_interval_ms = _setting(module, "REPEAT_INTERVAL_MS", 50, errors)
 
+    count_chords = getattr(module, "COUNT_CHORDS", False)
+    if not isinstance(count_chords, bool):
+        errors.append("COUNT_CHORDS must be True or False, got {!r}".format(count_chords))
+        count_chords = False
+
     mode_chord = 0
     try:
         mode_chord = parse_chord(getattr(module, "MODE_CHORD", "T+I+M+R+P"))
@@ -110,4 +116,4 @@ def load(module):
 
     if errors:
         raise MappingError("\n".join(errors))
-    return Config(hold_ms, repeat_delay_ms, repeat_interval_ms, mode_chord, sets)
+    return Config(hold_ms, repeat_delay_ms, repeat_interval_ms, mode_chord, sets, count_chords)

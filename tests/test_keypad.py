@@ -4,6 +4,7 @@ import _path  # noqa: F401
 from handful import config
 from handful.keypad import SEND, SET_MODE, Keypad
 from handful.keys import parse_keys
+from handful.usage import Usage
 from test_config import shipped_mappings
 
 T, I, M, R, P = 1, 2, 4, 8, 16
@@ -56,6 +57,12 @@ class KeypadTest(unittest.TestCase):
         sent = run(self.keypad, hold(P, 1000))
         self.assertEqual(len(sent), 1 + 4)
         self.assertTrue(all(s == (SEND, parse_keys("BACKSPACE")) for s in sent))
+
+    def test_counts_taps_and_holds_mapped_or_not(self):
+        usage = Usage()
+        keypad = Keypad(self.keypad.config, "macos", usage)
+        run(keypad, tap(M) + hold(P, 1000, at=100) + tap(T | I | P, at=2000) + hold(ALL, 500, at=3000))
+        self.assertEqual(usage.used(), [(M, 1, 0), (P, 0, 1), (T | I | P, 1, 0), (ALL, 0, 1)])
 
     def test_unknown_saved_mode_falls_back_to_macos(self):
         self.assertEqual(Keypad(self.keypad.config, "linux").mode, "macos")

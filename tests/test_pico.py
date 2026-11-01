@@ -6,6 +6,7 @@ from unittest import mock
 
 import _path  # noqa: F401
 import fakes
+from handful.usage import SIZE
 
 FIRMWARE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "firmware")
 
@@ -45,6 +46,32 @@ class PicoTest(unittest.TestCase):
         self.pico.save_mode("windows")
         self.assertEqual(self.hw.microcontroller.nvm[0], ord("W"))
         self.assertEqual(self.pico.load_mode(), "windows")
+
+    def test_usage_is_saved_after_the_mode_byte(self):
+        self.assertIsNone(self.pico.load_usage())
+        self.pico.save_mode("windows")
+        data = bytes(i % 256 for i in range(SIZE))
+        self.pico.save_usage(data)
+        self.assertEqual(self.pico.load_usage(), data)
+        self.assertEqual(self.pico.load_mode(), "windows")
+
+    def test_read_line_collects_serial_input_without_waiting(self):
+        runtime = self.hw.supervisor.runtime
+        pending = list("usa")
+
+        def read(n):
+            char = pending.pop(0)
+            runtime.serial_bytes_available = len(pending)
+            return char
+
+        runtime.serial_bytes_available = len(pending)
+        with mock.patch.object(self.pico_module.sys, "stdin", mock.Mock(read=read)):
+            self.assertIsNone(self.pico.read_line())
+            pending[:] = list("ge\r\n" + "x" * 100 + "\n")
+            runtime.serial_bytes_available = len(pending)
+            self.assertEqual(self.pico.read_line(), "usage")
+            self.assertEqual(self.pico.read_line(), "x" * self.pico_module.MAX_LINE)
+            self.assertIsNone(self.pico.read_line())
 
     def test_led_shows_the_mode(self):
         self.pico.show_mode("macos")

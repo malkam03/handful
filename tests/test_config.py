@@ -50,6 +50,10 @@ class LoadTest(unittest.TestCase):
         self.assertTrue(c.sets["macos"][p].repeat)
         self.assertFalse(c.sets["macos"][config.parse_chord("M+R")].repeat)
         self.assertEqual(c.sets["windows"][config.parse_chord("M")].keys, parse_keys("CTRL+V"))
+        self.assertFalse(c.count_chords)
+
+    def test_count_chords_can_be_turned_on(self):
+        self.assertTrue(config.load(module(COUNT_CHORDS=True)).count_chords)
 
     def test_defaults_when_settings_missing(self):
         c = config.load(module())
@@ -58,13 +62,14 @@ class LoadTest(unittest.TestCase):
     def test_reports_every_problem(self):
         m = module(
             HOLD_MS="slow",
+            COUNT_CHORDS="yes",
             MACOS={"X": "ENTER", "I": "NOPE", "M": ("V", "twice"), "T+I+M+R+P": "A"},
             WINDOWS={"I": "ENTER", "i": "ENTER"},
         )
         with self.assertRaises(config.MappingError) as ctx:
             config.load(m)
         message = str(ctx.exception)
-        for fragment in ("HOLD_MS", "'X'", "NOPE", "twice", "MODE_CHORD", "mapped twice"):
+        for fragment in ("HOLD_MS", "COUNT_CHORDS", "'X'", "NOPE", "twice", "MODE_CHORD", "mapped twice"):
             self.assertIn(fragment, message)
 
     def test_missing_set(self):

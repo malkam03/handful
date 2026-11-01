@@ -44,6 +44,20 @@ accepted decision is in [`docs/decisions/`](docs/decisions/).
    to switch.
 4. Print the [cheat sheet](docs/cheatsheet.svg).
 
+## Tuning the layout
+
+handful can count how often you use each chord, so the busiest ones can move
+to the easiest spots. It keeps totals only, never what you typed or when.
+
+1. Set `COUNT_CHORDS = True` in `mappings.py` on the CIRCUITPY drive.
+2. Use handful as usual for a week or two.
+3. Run `python3 tools/usage.py` (with pyserial installed, as in Development)
+   to see every chord ranked, the mapped chords not used yet and the unmapped
+   chords pressed anyway.
+4. Swap the chords where the gain is clear, then set `COUNT_CHORDS = False`
+   again. Counting saves to the Pico's flash once a minute, so it's meant for
+   short tuning rounds. `python3 tools/usage.py --reset` starts a fresh round.
+
 ## Development
 
 Use Python 3.13 or newer in a virtual environment, as CI does:

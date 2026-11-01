@@ -24,6 +24,13 @@ REPEAT_INTERVAL_MS = 50
 # Hold this chord to switch between macOS and Windows. Tapping it does nothing.
 MODE_CHORD = "T+I+M+R+P"
 
+# Count how often each chord is tapped and held, to see which chords deserve
+# the easiest spots. Only totals are kept, with no order or times. Counts are
+# saved to the Pico's flash once a minute while you type, which wears it, so
+# turn this on for a week or two of tuning, then off again.
+# Read them with: python3 tools/usage.py
+COUNT_CHORDS = False
+
 MACOS = {
     "T": "OPTION+SPACE",  # push-to-talk
     "I": "ENTER",  # enter
