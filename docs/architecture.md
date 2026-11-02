@@ -45,7 +45,8 @@ stateDiagram-v2
     Collecting --> Collecting: more buttons down<br/>(added to the chord)
     Collecting --> Idle: all buttons up<br/>/ send chord as a tap<br/>(unmapped: nothing)
     Collecting --> Holding: still down after hold threshold<br/>/ send chord as a hold
-    Holding --> Idle: all buttons up
+    Holding --> Holding: repeat or cycle interval<br/>/ send again (repeat, cycle)
+    Holding --> Idle: all buttons up<br/>/ let go of held modifiers (cycle)
 ```
 
 ## Components
@@ -76,10 +77,15 @@ stateDiagram-v2
   drive apart from the firmware. Errors are reported with the LED and the
   serial console. See [0006](decisions/0006-mappings-py.md).
 - **Default layout**: single presses for push-to-talk, enter, paste, copy and
-  backspace; thumb chords for their variants; more fingers for bigger actions.
-  Most actions fire once when held; backspace and delete word repeat. Holding
-  all five toggles the mode; unmapped chords do nothing, so adding the
-  remaining fingers cancels. See [0009](decisions/0009-default-mappings.md).
+  backspace; thumb chords for their variants; more fingers for bigger actions;
+  I+R switches app and T+I+M opens search. Most actions fire once when held;
+  backspace and delete word repeat. Holding all five toggles the mode;
+  unmapped chords do nothing, so adding the remaining fingers cancels. See
+  [0009](decisions/0009-default-mappings.md).
+- **Cycling hold**: a mapping marked `"cycle"`, such as switch app, keeps its
+  modifiers down while held and presses its key again every 500 ms, so the
+  computer's app switcher steps on until the fingers lift. See
+  [0019](decisions/0019-cycling-hold-for-app-switching.md).
 - **Chord usage counts**: with `COUNT_CHORDS = True` in `mappings.py`, the
   Pico counts how often each chord is tapped and held, with no order or
   times, and saves the totals to nvm at most once a minute. Off by default to
@@ -93,23 +99,23 @@ The firmware lives in `firmware/` and is copied to the CIRCUITPY drive with
 longer has and leaves an existing `mappings.py` in place.
 
 - `code.py`: starts the app on the Pico.
-- `mappings.py`: timings, the mode chord, the `COUNT_CHORDS` switch and
-  both mapping sets. Key names such as `CMD+SHIFT+4` are read by the
-  firmware, so the file needs no imports.
+- `mappings.py`: timings (hold, repeat and cycle), the mode chord, the
+  `COUNT_CHORDS` switch and both mapping sets. Key names such as
+  `CMD+SHIFT+4` are read by the firmware, so the file needs no imports.
 - `handful/` chord engine, plain Python with no hardware imports, tested on
   the computer (see Development in the README):
   - `debounce.py`: per-button debounce.
-  - `chords.py`: tap, hold and repeat events.
-  - `keypad.py`: turns events into key presses for the active mode and
-    toggles the mode.
+  - `chords.py`: tap, hold, repeat and release events.
+  - `keypad.py`: turns events into key presses for the active mode, keeps a
+    cycling action's modifiers down until release, and toggles the mode.
   - `usage.py`: the chord usage counts and their saved form.
   - `config.py` and `keys.py`: read and check `mappings.py`, and turn key
     names into USB HID usage IDs. `config.BUTTONS` sets the button order
     everywhere.
   - `app.py`: the main loop. It loads `mappings.py`, feeds button reads to
-    the keypad, sends keys, retries a release when USB is busy, saves the
-    usage counts and answers `usage` and `usage reset` on the serial
-    console. It gets the board passed in, so tests run it with a fake board.
+    the keypad, sends keys, retries the latest report when USB is busy,
+    saves the usage counts and answers `usage` and `usage reset` on the
+    serial console. It gets the board passed in, so tests run it with a fake board.
   - `hid.py`: builds USB keyboard reports.
 - `handful/pico.py` board layer: button pins, the LED, the USB keyboard
   device, serial console input, and the saved mode (byte 0) and usage counts
@@ -129,7 +135,8 @@ chords pressed anyway. `--reset` clears them.
 
 The LED is on in macOS mode, off in Windows mode, and blinks fast when
 `mappings.py` has a problem. A held repeating action fires once at the hold,
-then after another 400 ms repeats every 50 ms, like a normal keyboard.
+then after another 400 ms repeats every 50 ms, like a normal keyboard. A held
+cycling action opens the switcher at the hold and steps on every 500 ms.
 
 ## Interfaces
 

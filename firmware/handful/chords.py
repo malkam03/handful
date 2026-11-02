@@ -1,7 +1,8 @@
 """Chord detection: a chord is every button pressed until all are released.
 
 Fires a tap on release, or a hold once the chord has been down for the hold
-threshold. After a hold, repeat ticks follow until every button is released.
+threshold. After a hold, repeat ticks follow until every button is released,
+then a release.
 """
 
 from handful.ticks import ticks_add, ticks_diff
@@ -9,6 +10,7 @@ from handful.ticks import ticks_add, ticks_diff
 TAP = "tap"
 HOLD = "hold"
 REPEAT = "repeat"
+RELEASE = "release"
 
 
 class ChordDetector:
@@ -36,7 +38,7 @@ class ChordDetector:
             chord, held = self.chord, self._held
             self.chord = 0
             self._held = False
-            return [] if held else [(TAP, chord)]
+            return [(RELEASE, chord)] if held else [(TAP, chord)]
 
         if not self._held:
             if ticks_diff(now, self._start) >= self.hold_ms:

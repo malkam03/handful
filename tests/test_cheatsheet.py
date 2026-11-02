@@ -44,7 +44,7 @@ class CheatsheetTest(unittest.TestCase):
             self.assertEqual(sorted(os.listdir(docs)), ["cheatsheet.svg", "chords.svg"])
 
     def test_too_many_chords_in_a_group_is_explained(self):
-        combos = ["I+M", "I+R", "I+P", "M+R", "M+P", "R+P"]
+        combos = ["I+M", "I+R", "I+P", "M+R", "M+P", "R+P", "I+M+R"]
         with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False) as f:
             f.write("MACOS = {}\nWINDOWS = {}\n".format({c: "A" for c in combos}, {}))
         try:

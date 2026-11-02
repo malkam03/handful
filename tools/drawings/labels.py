@@ -49,5 +49,12 @@ def win_label(value):
     return "+".join([WIN_MODIFIERS[m] for m in modifiers] + [pretty_key(k, WIN_KEYS) for k in others])
 
 
-def repeats(value):
-    return isinstance(value, tuple) and value[1] == "repeat"
+HELD_MARKS = {"repeat": "\u21bb", "cycle": "\u00bb"}
+
+
+def held_mark(mac, win):
+    """The mark after a chord's name when holding it repeats or cycles, else ""."""
+    for value in (mac, win):
+        if isinstance(value, tuple) and value[1] in HELD_MARKS:
+            return HELD_MARKS[value[1]]
+    return ""

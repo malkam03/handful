@@ -2,7 +2,7 @@ import unittest
 
 import _path  # noqa: F401
 from handful import config
-from handful.keypad import SEND, SET_MODE, Keypad
+from handful.keypad import PRESS, RELEASE, SEND, SET_MODE, Keypad
 from handful.keys import parse_keys
 from handful.usage import Usage
 from test_config import shipped_mappings
@@ -57,6 +57,23 @@ class KeypadTest(unittest.TestCase):
         sent = run(self.keypad, hold(P, 1000))
         self.assertEqual(len(sent), 1 + 4)
         self.assertTrue(all(s == (SEND, parse_keys("BACKSPACE")) for s in sent))
+
+    def test_tapping_a_cycle_action_sends_it_once(self):
+        self.assertEqual(run(self.keypad, tap(I | R)), [(SEND, parse_keys("CMD+TAB"))])
+
+    def test_held_cycle_action_keeps_modifiers_down_and_steps_until_lifted(self):
+        step = [(PRESS, parse_keys("CMD+TAB")), (PRESS, parse_keys("CMD"))]
+        self.assertEqual(run(self.keypad, hold(I | R, 1500)), step * 3 + [(RELEASE, None)])
+
+    def test_cycle_steps_at_the_cycle_interval(self):
+        times = []
+        for now, pressed in hold(I | R, 1500):
+            if self.keypad.update(pressed, now)[:1] == [(PRESS, parse_keys("CMD+TAB"))]:
+                times.append(now)
+        self.assertEqual(times, [400, 900, 1400])
+
+    def test_releasing_other_holds_sends_nothing_more(self):
+        self.assertEqual(run(self.keypad, hold(M | R, 600))[-1:], [(SEND, parse_keys("CMD+Z"))])
 
     def test_counts_taps_and_holds_mapped_or_not(self):
         usage = Usage()

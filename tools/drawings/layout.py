@@ -20,7 +20,7 @@ GROUPS = [
 ]
 
 # Chords per group that fit in each drawing's column.
-ROWS = 5
+ROWS = 6
 
 # Highlighter colour behind each group's chord names.
 HIGHLIGHT = ["#ffe45c", "#a9dcff", "#a6efb4"]

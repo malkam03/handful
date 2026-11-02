@@ -3,7 +3,7 @@
 from xml.sax.saxutils import escape
 
 from drawings.hand import hand
-from drawings.labels import mac_label, repeats, win_label
+from drawings.labels import HELD_MARKS, held_mark, mac_label, win_label
 from drawings.layout import Layout
 from drawings.sketch import FILTERS, GLYPH_REACH, circle_d, glyph, highlight, rect_d, sketch, squiggle
 from drawings.style import COLOUR, GREY, INK, MARKER, NOTE, PAPER, REPEAT, TILTS, embed_fonts, text, text_width, wrap
@@ -22,8 +22,8 @@ def centred(x, w, left, right):
     return x + (w - (right - left)) / 2 - left
 
 
-def title_width(title, size, repeat):
-    return text_width(title, size) + (text_width(" \u21bb", size) if repeat else 0)
+def title_width(title, size, mark):
+    return text_width(title, size) + (text_width(" " + mark, size) if mark else 0)
 
 
 def chord_card(x, y, w, h, chord, name, mac, win, colour, tilt):
@@ -31,16 +31,17 @@ def chord_card(x, y, w, h, chord, name, mac, win, colour, tilt):
     out.append(sketch(rect_d(x, y, w, h), "#fff", INK, 0.45))
     title = name[:1].upper() + name[1:]
     keys_w = max(text_width(mac_label(mac), 9.5), text_width(win_label(win), 9.5))
-    right = 23 + max(title_width(title, 11, repeats(mac) or repeats(win)), 7 + keys_w)
+    mark = held_mark(mac, win)
+    right = 23 + max(title_width(title, 11, mark), 7 + keys_w)
     x = centred(x, w, 11.5 - GLYPH_REACH * 0.95 - 1.95, right)
     out.append(glyph(x + 11.5, y + h / 2 - 1.2, chord, 0.95, 1.95))
-    out.append(highlight(x + 23, y + 9.2, text_width(title, 11), colour))
+    out.append(highlight(x + 23, y + 8.4, text_width(title, 11), colour))
     label = escape(title)
-    if repeats(mac) or repeats(win):
-        label += '<tspan fill="{}" font-weight="700"> \u21bb</tspan>'.format(REPEAT)
-    out.append(text(x + 23, y + 9.2, label, 11, 700))
+    if mark:
+        label += '<tspan fill="{}" font-weight="700"> {}</tspan>'.format(REPEAT, mark)
+    out.append(text(x + 23, y + 8.4, label, 11, 700))
     for i, (tag, keys) in enumerate((("mac", mac_label(mac)), ("win", win_label(win)))):
-        ly = y + 16.8 + i * 5.6
+        ly = y + 15.2 + i * 5.4
         out.append(text(x + 23, ly, tag, 7, 400, GREY))
         out.append(text(x + 30, ly, escape(keys), 9.5, 400, INK))
     out.append("</g>")
@@ -52,7 +53,8 @@ def sticky_note(x, y, w, h, settings):
     rows = [
         ("Tap", "press, then lift every finger. It fires as you lift."),
         ("Hold", "keep it down {} ms and it fires right away, once.".format(hold)),
-        ("\u21bb", "repeats for as long as you hold."),
+        (HELD_MARKS["repeat"], "repeats for as long as you hold."),
+        (HELD_MARKS["cycle"], "keeps the switcher open and steps on until you lift."),
         ("Cancel", "squeeze in the other fingers before lifting."),
     ]
     out = ['<g transform="rotate(-1.5 {:.2f} {:.2f})">'.format(x + w / 2, y + h / 2)]
@@ -63,7 +65,7 @@ def sticky_note(x, y, w, h, settings):
     out.append(text(x + 4, y + 9, "How it works", 13, 400, INK, "start", MARKER))
     cy = y + 15.5
     for label, body in rows:
-        repeat = label == "\u21bb"
+        repeat = label in HELD_MARKS.values()
         out.append(text(x + 4, cy, label, 11 if repeat else 8.5, 700, REPEAT if repeat else INK))
         lines = wrap(body, 33)
         for j, line in enumerate(lines):
@@ -97,12 +99,12 @@ def render(mappings_path):
         squiggle(12, 24.5, 44, COLOUR["P"], 1.1),
         text(12, 32, "chord cheat sheet for your left hand", 9.5, 400, GREY),
         hand(15, 37, 0.88),
-        sticky_note(10, 126, 68, 47, settings),
-        mode_box(10, 184, settings.mode_chord),
+        sticky_note(10, 124, 68, 54, settings),
+        mode_box(10, 186, settings.mode_chord),
     ]
 
     column, gutter, x = 63, 5, 86
-    pitch, card_h = 31.6, 28.4
+    pitch, card_h = 27, 24.6
     card = 0
     for title, subtitle, colour, rows in layout.groups:
         out.append(heading(x + 1, 22, title, subtitle, colour))

@@ -9,7 +9,9 @@
 #   UP, DOWN, LEFT, RIGHT, HOME, END, PAGE_UP, PAGE_DOWN, PRINT_SCREEN and
 #   punctuation such as MINUS, COMMA, PERIOD, SLASH.
 # A held chord fires its action once. To repeat while held, write
-#   ("BACKSPACE", "repeat").
+#   ("BACKSPACE", "repeat"). To keep the modifiers down and press the key
+#   again and again until you lift, as for switching apps, write
+#   ("CMD+TAB", "cycle").
 # Chords that aren't listed do nothing.
 #
 # LED on: macOS mode. LED off: Windows mode. Fast blink: this file has a
@@ -20,6 +22,9 @@ HOLD_MS = 400
 # After a repeating hold fires, wait this long, then repeat at this interval.
 REPEAT_DELAY_MS = 400
 REPEAT_INTERVAL_MS = 50
+# A cycling hold opens the switcher at the hold, then moves on one step this
+# often until you lift.
+CYCLE_INTERVAL_MS = 500
 
 # Hold this chord to switch between macOS and Windows. Tapping it does nothing.
 MODE_CHORD = "T+I+M+R+P"
@@ -44,6 +49,8 @@ MACOS = {
     "M+R": "CMD+Z",  # undo
     "T+M+R": "CMD+SHIFT+Z",  # redo
     "R+P": "ESCAPE",  # escape
+    "T+I+M": "CMD+SPACE",  # search
+    "I+R": ("CMD+TAB", "cycle"),  # switch app
     "I+M": "CMD+SHIFT+4",  # region screenshot
     "I+M+R": "CMD+SHIFT+3",  # full screenshot
     "I+M+R+P": "CMD+A",  # select all
@@ -62,6 +69,8 @@ WINDOWS = {
     "M+R": "CTRL+Z",  # undo
     "T+M+R": "CTRL+Y",  # redo
     "R+P": "ESCAPE",  # escape
+    "T+I+M": "WIN+S",  # search
+    "I+R": ("ALT+TAB", "cycle"),  # switch app
     "I+M": "WIN+SHIFT+S",  # region screenshot
     "I+M+R": "WIN+PRINT_SCREEN",  # full screenshot
     "I+M+R+P": "CTRL+A",  # select all

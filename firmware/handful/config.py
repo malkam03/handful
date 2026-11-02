@@ -5,7 +5,8 @@ from handful.keys import parse_keys
 # Thumb, index, middle, ring, pinky: bit 0 to bit 4 of every chord bitmask.
 BUTTONS = "TIMRP"
 MODES = ("macos", "windows")
-HELD_BEHAVIOURS = ("once", "repeat")
+HELD_BEHAVIOURS = ("once", "repeat", "cycle")
+MODIFIER_CODES = range(0xE0, 0xE8)
 
 
 class MappingError(Exception):
@@ -13,16 +14,20 @@ class MappingError(Exception):
 
 
 class Action:
-    def __init__(self, keys, repeat):
+    def __init__(self, keys, held="once"):
         self.keys = keys
-        self.repeat = repeat
+        self.held = held
+        self.repeat = held == "repeat"
+        self.modifiers = tuple(k for k in keys if k in MODIFIER_CODES)
 
 
 class Config:
-    def __init__(self, hold_ms, repeat_delay_ms, repeat_interval_ms, mode_chord, sets, count_chords=False):
+    def __init__(self, hold_ms, repeat_delay_ms, repeat_interval_ms, mode_chord, sets, count_chords=False,
+                 cycle_interval_ms=500):
         self.hold_ms = hold_ms
         self.repeat_delay_ms = repeat_delay_ms
         self.repeat_interval_ms = repeat_interval_ms
+        self.cycle_interval_ms = cycle_interval_ms
         self.mode_chord = mode_chord
         self.sets = sets
         self.count_chords = count_chords
@@ -53,12 +58,15 @@ def chord_name(mask):
 def _parse_action(value):
     if isinstance(value, tuple):
         if len(value) != 2:
-            raise ValueError("expected (\"KEYS\", \"once\" or \"repeat\"), got {!r}".format(value))
+            raise ValueError("expected (\"KEYS\", \"once\", \"repeat\" or \"cycle\"), got {!r}".format(value))
         keys, held = value
         if held not in HELD_BEHAVIOURS:
-            raise ValueError("held behaviour must be \"once\" or \"repeat\", got {!r}".format(held))
-        return Action(parse_keys(keys), held == "repeat")
-    return Action(parse_keys(value), False)
+            raise ValueError("held behaviour must be \"once\", \"repeat\" or \"cycle\", got {!r}".format(held))
+        action = Action(parse_keys(keys), held)
+        if held == "cycle" and (not action.modifiers or len(action.modifiers) == len(action.keys)):
+            raise ValueError("\"cycle\" needs a modifier and a key, like \"CMD+TAB\", got {!r}".format(keys))
+        return action
+    return Action(parse_keys(value))
 
 
 def _setting(module, name, default, errors):
@@ -75,6 +83,7 @@ def load(module):
     hold_ms = _setting(module, "HOLD_MS", 400, errors)
     repeat_delay_ms = _setting(module, "REPEAT_DELAY_MS", 400, errors)
     repeat_interval_ms = _setting(module, "REPEAT_INTERVAL_MS", 50, errors)
+    cycle_interval_ms = _setting(module, "CYCLE_INTERVAL_MS", 500, errors)
 
     count_chords = getattr(module, "COUNT_CHORDS", False)
     if not isinstance(count_chords, bool):
@@ -116,4 +125,4 @@ def load(module):
 
     if errors:
         raise MappingError("\n".join(errors))
-    return Config(hold_ms, repeat_delay_ms, repeat_interval_ms, mode_chord, sets, count_chords)
+    return Config(hold_ms, repeat_delay_ms, repeat_interval_ms, mode_chord, sets, count_chords, cycle_interval_ms)

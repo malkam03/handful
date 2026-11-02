@@ -42,10 +42,13 @@ class ParseChordTest(unittest.TestCase):
 class LoadTest(unittest.TestCase):
     def test_shipped_mappings_load(self):
         c = config.load(shipped_mappings())
-        self.assertEqual((c.hold_ms, c.repeat_delay_ms, c.repeat_interval_ms), (400, 400, 50))
+        self.assertEqual((c.hold_ms, c.repeat_delay_ms, c.repeat_interval_ms, c.cycle_interval_ms), (400, 400, 50, 500))
         self.assertEqual(c.mode_chord, 31)
         for mode in ("macos", "windows"):
-            self.assertEqual(len(c.sets[mode]), 15)
+            self.assertEqual(len(c.sets[mode]), 17)
+        switch = c.sets["windows"][config.parse_chord("I+R")]
+        self.assertEqual(
+            (switch.held, switch.keys, switch.modifiers), ("cycle", parse_keys("ALT+TAB"), parse_keys("ALT")))
         p = config.parse_chord("P")
         self.assertTrue(c.sets["macos"][p].repeat)
         self.assertFalse(c.sets["macos"][config.parse_chord("M+R")].repeat)
@@ -58,10 +61,18 @@ class LoadTest(unittest.TestCase):
     def test_defaults_when_settings_missing(self):
         c = config.load(module())
         self.assertEqual((c.hold_ms, c.repeat_delay_ms, c.repeat_interval_ms, c.mode_chord), (400, 400, 50, 31))
+        self.assertEqual(c.cycle_interval_ms, 500)
+
+    def test_cycle_needs_a_modifier_and_a_key(self):
+        for keys in ("TAB", "CMD+SHIFT"):
+            with self.assertRaises(config.MappingError) as ctx:
+                config.load(module(MACOS={"I": (keys, "cycle")}))
+            self.assertIn("needs a modifier and a key", str(ctx.exception))
 
     def test_reports_every_problem(self):
         m = module(
             HOLD_MS="slow",
+            CYCLE_INTERVAL_MS=0,
             COUNT_CHORDS="yes",
             MACOS={"X": "ENTER", "I": "NOPE", "M": ("V", "twice"), "T+I+M+R+P": "A"},
             WINDOWS={"I": "ENTER", "i": "ENTER"},
@@ -69,7 +80,8 @@ class LoadTest(unittest.TestCase):
         with self.assertRaises(config.MappingError) as ctx:
             config.load(m)
         message = str(ctx.exception)
-        for fragment in ("HOLD_MS", "COUNT_CHORDS", "'X'", "NOPE", "twice", "MODE_CHORD", "mapped twice"):
+        for fragment in ("HOLD_MS", "CYCLE_INTERVAL_MS", "COUNT_CHORDS", "'X'", "NOPE", "twice", "MODE_CHORD",
+                         "mapped twice"):
             self.assertIn(fragment, message)
 
     def test_missing_set(self):

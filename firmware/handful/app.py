@@ -14,7 +14,7 @@ import traceback
 
 from handful import config
 from handful.debounce import Debouncer
-from handful.keypad import SEND, Keypad
+from handful.keypad import PRESS, RELEASE, SEND, Keypad
 from handful.ticks import ticks_diff
 from handful.usage import Usage
 
@@ -44,7 +44,8 @@ class App:
         self.saved_at = board.now()
         self.keypad = Keypad(settings, board.load_mode(), self.usage if self.counting else None)
         self.debouncer = Debouncer(len(config.BUTTONS), board.DEBOUNCE_MS)
-        self.release_pending = False
+        # The report still to send when USB was busy: keys to hold, () for none, None when sent.
+        self.pending = None
         board.show_mode(self.keypad.mode)
         print("handful ready, mode:", self.keypad.mode)
         if self.counting:
@@ -52,8 +53,8 @@ class App:
 
     def step(self):
         """Read the buttons once and act on any chord events."""
-        if self.release_pending:
-            self._release()
+        if self.pending is not None:
+            self._flush()
         line = self.board.read_line()
         if line is not None:
             self._command(line)
@@ -62,6 +63,10 @@ class App:
         for kind, value in self.keypad.update(pressed, now):
             if kind == SEND:
                 self._send(value)
+            elif kind == PRESS:
+                self._write(value)
+            elif kind == RELEASE:
+                self._write(())
             else:
                 self.board.save_mode(value)
                 self.board.show_mode(value)
@@ -92,20 +97,28 @@ class App:
         print("usage end")
 
     def _send(self, keys):
-        # If USB isn't ready, skip this press but keep the keypad running.
-        try:
-            self.board.press(keys)
-        except OSError as error:
-            print("handful: USB not ready:", error)
-        self._release()
+        # If USB isn't ready, the press is skipped: the release below replaces it.
+        self._write(keys)
+        self._write(())
 
-    def _release(self):
-        # A failed release is retried on every step, so no key stays down on the computer.
+    def _write(self, keys):
+        """Make the computer see `keys` held, or nothing for (). A failed report is retried on every
+        step until a newer one replaces it, so the computer ends up with what the fingers are doing."""
+        self.pending = keys
+        error = self._flush()
+        if error is not None and keys:
+            print("handful: USB not ready:", error)
+
+    def _flush(self):
         try:
-            self.board.release_all()
-            self.release_pending = False
-        except OSError:
-            self.release_pending = True
+            if self.pending:
+                self.board.press(self.pending)
+            else:
+                self.board.release_all()
+        except OSError as error:
+            return error
+        self.pending = None
+        return None
 
 
 def run(board, load_mappings, steps=None):

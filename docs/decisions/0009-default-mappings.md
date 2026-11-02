@@ -38,6 +38,8 @@ We will ship this layout. T is thumb, I index, M middle, R ring, P pinky.
 | T+P | Delete word | Option+Backspace | Ctrl+Backspace | repeat |
 | M+R | Undo | Cmd+Z | Ctrl+Z | once |
 | T+M+R | Redo | Cmd+Shift+Z | Ctrl+Y | once |
+| T+I+M | Search | Cmd+Space | Win+S | once |
+| I+R | Switch app | Cmd+Tab | Alt+Tab | cycle |
 | R+P | Escape | Esc | Esc | once |
 | I+M | Region screenshot | Cmd+Shift+4 | Win+Shift+S | once |
 | I+M+R | Full screenshot | Cmd+Shift+3 | Win+PrtScn | once |
@@ -49,8 +51,10 @@ fingers; the thumb plus a finger is a variant of that finger's action; more
 fingers means more (bigger screenshot, select all, whole device); rare actions
 take the hardest pair.
 
-When held, most actions fire once. Backspace and delete word repeat. Undo and
-redo never repeat. The mode toggle fires only when all five are held; tapping
+When held, most actions fire once. Backspace and delete word repeat. Switch
+app cycles through the open apps until the fingers lift
+([0019](0019-cycling-hold-for-app-switching.md)). Undo and redo never
+repeat. The mode toggle fires only when all five are held; tapping
 all five does nothing. Chords with no mapping do nothing, so adding the
 remaining fingers before lifting cancels a chord, as long as this happens
 before the hold threshold. Once a hold has fired, it can't be cancelled.

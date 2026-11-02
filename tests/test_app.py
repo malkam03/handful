@@ -95,6 +95,13 @@ class AppTest(unittest.TestCase):
         self.drive(0, 20)
         self.assertEqual(self.board.log, [("press", parse_keys("CMD+V")), ("release_all",)])
 
+    def test_held_cycle_keeps_the_modifier_down_until_lifted(self):
+        I_R = 2 | 8
+        self.drive(I_R, 950)
+        self.drive(0, 20)
+        cmd_tab, cmd = parse_keys("CMD+TAB"), parse_keys("CMD")
+        self.assertEqual(self.board.log, [("press", cmd_tab), ("press", cmd)] * 2 + [("release_all",)])
+
     def test_holding_all_five_switches_and_saves_the_mode(self):
         self.drive(ALL, 450)
         self.assertEqual(self.board.mode, "windows")
@@ -110,8 +117,39 @@ class AppTest(unittest.TestCase):
         self.board.fail_release = 3
         self.drive(M, 20)
         self.drive(0, 20)
-        self.assertFalse(self.app.release_pending)
+        self.assertIsNone(self.app.pending)
         self.assertEqual(self.board.log, [("press", parse_keys("CMD+V")), ("release_all",)])
+
+    def test_failed_tab_up_during_a_cycle_is_retried(self):
+        cmd_tab, cmd = parse_keys("CMD+TAB"), parse_keys("CMD")
+        fail_cmd_once = self.fail_when(cmd, times=1)
+        self.drive(2 | 8, 420)
+        self.assertEqual(self.board.log, [("press", cmd_tab), ("press", cmd)])
+        self.assertIsNone(self.app.pending)
+        self.assertEqual(fail_cmd_once["left"], 0)
+
+    def test_a_stale_release_does_not_close_a_new_cycle(self):
+        cmd_tab, cmd = parse_keys("CMD+TAB"), parse_keys("CMD")
+        self.board.fail_release = 10 ** 6
+        self.drive(M, 20)
+        self.drive(0, 20)
+        self.drive(2 | 8, 420)
+        self.board.fail_release = 0
+        self.drive(2 | 8, 20)
+        self.assertEqual(self.board.log[-2:], [("press", cmd_tab), ("press", cmd)])
+
+    def fail_when(self, keys, times):
+        """Make press(keys) raise OSError `times` times."""
+        state = {"left": times}
+        press = self.board.press
+
+        def flaky(pressed):
+            if pressed == keys and state["left"]:
+                state["left"] -= 1
+                raise OSError("USB busy")
+            press(pressed)
+        self.board.press = flaky
+        return state
 
 
 def counting_mappings():
