@@ -21,7 +21,7 @@ class PicoTest(unittest.TestCase):
         self.pico_module = pico
         self.pico = pico.Pico()
         self.buttons = fakes.DigitalInOut.instances[:5]
-        self.led = fakes.DigitalInOut.instances[5]
+        self.leds = fakes.DigitalInOut.instances[5:]
 
     def test_buttons_follow_the_config_order_with_pull_ups(self):
         self.assertEqual([b.pin.name for b in self.buttons], ["GP2", "GP3", "GP4", "GP5", "GP6"])
@@ -73,17 +73,55 @@ class PicoTest(unittest.TestCase):
             self.assertEqual(self.pico.read_line(), "x" * self.pico_module.MAX_LINE)
             self.assertIsNone(self.pico.read_line())
 
-    def test_led_shows_the_mode(self):
-        self.pico.show_mode("macos")
-        self.assertTrue(self.led.value)
-        self.pico.show_mode("windows")
-        self.assertFalse(self.led.value)
+    def lit(self):
+        """(onboard, red, green, blue)"""
+        return tuple(led.value for led in self.leds)
 
-    def test_blink_error_toggles_the_led(self):
+    def test_leds_start_off(self):
+        self.assertEqual([led.pin.name for led in self.leds], ["LED", "GP28", "GP27", "GP26"])
+        self.assertEqual(self.lit(), (False, False, False, False))
+
+    def test_leds_show_the_mode(self):
+        self.pico.show_mode("macos")
+        self.assertEqual(self.lit(), (True, False, True, False))
+        self.pico.show_mode("windows")
+        self.assertEqual(self.lit(), (False, False, False, True))
+
+    def test_never_two_colours_at_once_while_switching(self):
+        rgb = self.leds[1:]
+        seen = []
+
+        class Watched(type(rgb[0])):
+            def __setattr__(led, name, value):
+                object.__setattr__(led, name, value)
+                if name == "value":
+                    seen.append(sum(1 for pin in rgb if pin.value))
+
+        for led in rgb:
+            led.__class__ = Watched
+        self.pico.show_mode("windows")
+        self.pico.show_mode("macos")
+        self.pico.show_mode("windows")
         with mock.patch.object(self.pico_module.time, "sleep", side_effect=StopIteration):
             with self.assertRaises(StopIteration):
                 self.pico.blink_error()
-        self.assertTrue(self.led.value)
+        self.assertTrue(seen)
+        self.assertLessEqual(max(seen), 1)
+
+    def test_blink_error_blinks_onboard_and_red_together(self):
+        self.pico.show_mode("macos")
+        seen = []
+
+        def sleep(seconds):
+            seen.append(self.lit())
+            if len(seen) == 3:
+                raise StopIteration
+
+        with mock.patch.object(self.pico_module.time, "sleep", side_effect=sleep):
+            with self.assertRaises(StopIteration):
+                self.pico.blink_error()
+        on, off = (True, True, False, False), (False, False, False, False)
+        self.assertEqual(seen, [on, off, on])
 
     def test_code_py_runs_the_app_on_the_pico(self):
         with mock.patch("handful.app.run") as run:

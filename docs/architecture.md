@@ -19,7 +19,7 @@ flowchart LR
         chord["Chord detection<br/>(chord engine)"]
         mode["Mode: macOS / Windows<br/>(remembered)"]
         hid["USB keyboard reports<br/>(built-in usb_hid)"]
-        led["Onboard LED"]
+        led["Onboard LED<br/>(GP25)"]
         scan --> chord --> mode --> hid
         mode -- GPIO --> led
         nvm["Saved mode and<br/>chord counts (nvm)"]
@@ -27,9 +27,11 @@ flowchart LR
         chord -- "taps and holds<br/>(COUNT_CHORDS on)" --> nvm
     end
     config["mappings.py<br/>(on CIRCUITPY drive)"]
+    rgb["RGB indicator LED<br/>(on the shell)"]
     host["Computer<br/>(tools/usage.py reads the counts)"]
 
     buttons -- "GP2–GP6, active low" --> scan
+    mode -- "GP26–GP28, one 330 Ω<br/>(green macOS, blue Windows)" --> rgb
     config --> mode
     hid -- USB HID --> host
     host -- "USB serial:<br/>usage / usage reset" --> nvm
@@ -69,6 +71,9 @@ stateDiagram-v2
 - **Mapping modes**: a macOS set and a Windows set, toggled by holding all
   five buttons. The onboard LED shows the active mode, and the mode survives a
   power cycle. See [0004](decisions/0004-macos-and-windows-modes.md).
+- **RGB indicator LED**: a common-cathode RGB LED on the shell, green in
+  macOS mode and blue in Windows mode. See
+  [0018](decisions/0018-rgb-indicator-led.md).
 - **Chord detection**: every button pressed until all are released forms one
   chord, sent on release. A chord held past the hold threshold (400 ms by
   default) is sent as a hold instead. See
@@ -117,7 +122,7 @@ longer has and leaves an existing `mappings.py` in place.
     saves the usage counts and answers `usage` and `usage reset` on the
     serial console. It gets the board passed in, so tests run it with a fake board.
   - `hid.py`: builds USB keyboard reports.
-- `handful/pico.py` board layer: button pins, the LED, the USB keyboard
+- `handful/pico.py` board layer: button pins, the onboard and RGB LEDs, the USB keyboard
   device, serial console input, and the saved mode (byte 0) and usage counts
   (after it) in `microcontroller.nvm`. Tests run it with stand-ins for the
   CircuitPython modules.
@@ -133,16 +138,22 @@ same on every computer. A test fails when either drawing is out of date.
 and prints them ranked, with the mapped chords not used yet and the unmapped
 chords pressed anyway. `--reset` clears them.
 
-The LED is on in macOS mode, off in Windows mode, and blinks fast when
-`mappings.py` has a problem. A held repeating action fires once at the hold,
-then after another 400 ms repeats every 50 ms, like a normal keyboard. A held
-cycling action opens the switcher at the hold and steps on every 500 ms.
+The onboard LED is on in macOS mode and off in Windows mode; the RGB LED is
+green and blue. When `mappings.py` has a problem, the onboard LED and the
+RGB LED in red blink fast together. A held repeating action fires once at the
+hold, then after another 400 ms repeats every 50 ms, like a normal keyboard.
+A held cycling action opens the switcher at the hold and steps on every
+500 ms.
 
 ## Interfaces
 
 - Buttons to Pico: each button between its own GPIO and GND, internal
   pull-ups, active low, 5 ms debounce. Thumb GP2, index GP3, middle GP4,
   ring GP5, pinky GP6. See [0008](decisions/0008-direct-gpio-wiring.md).
+- RGB indicator LED: blue on GP26 (physical pin 31), green on GP27 (pin 32),
+  red on GP28 (pin 34), common leg through one 330 Ω resistor to GND
+  (pin 38). Active high, one colour at a time, at most about 4 mA. See
+  [0018](decisions/0018-rgb-indicator-led.md).
 - Pico to computer: a USB cable carrying a HID keyboard, no drivers needed,
   and CircuitPython's serial console, where the firmware reports problems and
   answers `usage` and `usage reset`.

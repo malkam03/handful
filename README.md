@@ -36,12 +36,14 @@ accepted decision is in [`docs/decisions/`](docs/decisions/).
 
 1. Install [CircuitPython](https://circuitpython.org/board/raspberry_pi_pico/)
    on a Raspberry Pi Pico and wire the buttons as in
-   [0008](docs/decisions/0008-direct-gpio-wiring.md).
+   [0008](docs/decisions/0008-direct-gpio-wiring.md). For a mode light on the
+   shell, add the RGB LED from
+   [0018](docs/decisions/0018-rgb-indicator-led.md).
 2. Plug the Pico in and run `python3 tools/deploy.py`. The firmware uses only
    modules built into CircuitPython, so nothing is downloaded.
 3. Edit `mappings.py` on the CIRCUITPY drive to change what each chord does.
-   The LED is on in macOS mode and off in Windows mode; hold all five buttons
-   to switch.
+   The LED is on in macOS mode and off in Windows mode (the RGB LED is green
+   and blue); hold all five buttons to switch.
 4. Print the [cheat sheet](docs/cheatsheet.svg).
 
 ## Tuning the layout

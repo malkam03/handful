@@ -15,6 +15,12 @@ from handful.usage import SIZE as USAGE_SIZE
 
 # Each button connects its pin to GND.
 PINS = {"T": board.GP2, "I": board.GP3, "M": board.GP4, "R": board.GP5, "P": board.GP6}
+# Common-cathode RGB LED: each pin drives a colour leg; the common leg goes through one resistor to GND,
+# so only one colour is lit at a time.
+RGB_PINS = (board.GP28, board.GP27, board.GP26)  # red, green, blue
+OFF = (False, False, False)
+RED = (True, False, False)
+MODE_COLOURS = {"macos": (False, True, False), "windows": (False, False, True)}
 ERROR_BLINK_S = 0.1
 
 # nvm layout: byte 0 is the mode, then a marker and the chord usage counts.
@@ -34,10 +40,16 @@ class Pico:
             button = digitalio.DigitalInOut(PINS[letter])
             button.switch_to_input(pull=digitalio.Pull.UP)
             self._buttons.append(button)
-        self._led = digitalio.DigitalInOut(board.LED)
-        self._led.switch_to_output(value=False)
+        self._led = self._output(board.LED)
+        self._rgb = [self._output(pin) for pin in RGB_PINS]
         self._keyboard = None
         self._line = ""
+
+    @staticmethod
+    def _output(pin):
+        led = digitalio.DigitalInOut(pin)
+        led.switch_to_output(value=False)
+        return led
 
     def now(self):
         return supervisor.ticks_ms()
@@ -95,11 +107,24 @@ class Pico:
         return None
 
     def show_mode(self, mode):
-        """LED on for macOS, off for Windows."""
-        self._led.value = mode == "macos"
+        """Onboard LED on for macOS and off for Windows; RGB LED green for macOS and blue for Windows."""
+        self._light(mode == "macos", MODE_COLOURS[mode])
 
     def blink_error(self):
-        """Blink fast forever. CircuitPython restarts when a file on the drive is saved."""
+        """Blink the onboard LED and the RGB LED in red, fast, forever.
+
+        CircuitPython restarts when a file on the drive is saved.
+        """
+        on = False
         while True:
-            self._led.value = not self._led.value
+            on = not on
+            self._light(on, RED if on else OFF)
             time.sleep(ERROR_BLINK_S)
+
+    def _light(self, onboard, colour):
+        self._led.value = onboard
+        # Off before on, so two colours never share the one resistor, even briefly.
+        for lit in (False, True):
+            for led, value in zip(self._rgb, colour):
+                if value == lit:
+                    led.value = value

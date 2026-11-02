@@ -14,8 +14,9 @@
 #   ("CMD+TAB", "cycle").
 # Chords that aren't listed do nothing.
 #
-# LED on: macOS mode. LED off: Windows mode. Fast blink: this file has a
-# problem; the serial console says what it is.
+# LED on (RGB LED green): macOS mode. LED off (RGB LED blue): Windows mode.
+# Fast blink (RGB LED red): this file has a problem; the serial console says
+# what it is.
 
 # How long a chord is held before it counts as a hold, in milliseconds.
 HOLD_MS = 400

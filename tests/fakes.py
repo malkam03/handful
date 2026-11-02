@@ -38,7 +38,7 @@ class HIDDevice:
 def install():
     """Put fake board, digitalio, microcontroller, supervisor and usb_hid modules in sys.modules."""
     board = types.ModuleType("board")
-    for name in ("GP2", "GP3", "GP4", "GP5", "GP6", "LED"):
+    for name in ("GP2", "GP3", "GP4", "GP5", "GP6", "GP26", "GP27", "GP28", "LED"):
         setattr(board, name, Pin(name))
     digitalio = types.ModuleType("digitalio")
     digitalio.DigitalInOut = DigitalInOut
