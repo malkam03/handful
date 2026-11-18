@@ -24,3 +24,18 @@ jobs:
       - run: ruff check .
       - run: coverage run -m unittest discover -s tests
       - run: coverage report
+
+  cad:
+    # Builds every grip part and checks it prints and fits (cad/README.md).
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cad
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt
+      - run: pytest
+      - run: python build.py --hand both --no-renders

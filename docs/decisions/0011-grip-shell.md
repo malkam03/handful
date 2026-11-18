@@ -32,8 +32,8 @@ swappable printed wedges under the shell, from 0° to 30° and beyond.
 
 ## Consequences
 
-- The five MX-style switches sit in the shell at their own angles (see
-  [0010](0010-mx-style-switches.md)).
+- The five low-profile switches sit in the shell at their own angles (see
+  [0023](0023-choc-v2-low-profile-switches.md)).
 - New tilt angles mean printing a new wedge, not a new shell.
 - The CAD model needs a way to mirror the shell, which affects the choice of
   CAD tool.

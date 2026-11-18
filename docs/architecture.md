@@ -12,7 +12,7 @@ firmware is written in CircuitPython.
 
 ```mermaid
 flowchart LR
-    buttons["5 buttons<br/>(4 fingers + thumb)<br/>prototype: 12 mm tactile<br/>build: MX-style, hot-swap"]
+    buttons["5 buttons<br/>(4 fingers + thumb)<br/>prototype: 12 mm tactile<br/>build: Choc v2, hot-swap"]
     subgraph pico["Raspberry Pi Pico (RP2040)"]
         direction LR
         scan["Button scan + 5 ms debounce<br/>(board layer)"]
@@ -38,6 +38,23 @@ flowchart LR
     host -- "5 V (USB)" --> pico
 ```
 
+### Grip shell
+
+```mermaid
+flowchart TB
+    caps["5 long caps<br/>(part of the shell surface)"] -- "pusher on the stem" --> switches["5 Kailh Choc v2 switches"]
+    caps -- "flexure tab,<br/>M2 screw into an insert" --> shell
+    switches -- "clip into" --> modules["5 key modules<br/>(Choc plate + hot-swap socket)"]
+    modules -- "slide in from below,<br/>lip stops on a seat" --> shell["Solid shell<br/>(palm rest, thumb side, fingers front)"]
+    base["Base"] -- "posts and thumb block<br/>press the modules in" --> modules
+    shell -- "4 × M3 screws into<br/>heat-set inserts" --> base
+    pico["Pico"] -- "4 × M2 screws into<br/>heat-set inserts" --> base
+    pico -. "GP26–GP28,<br/>one 330 Ω" .-> led["RGB LED<br/>ahead of the thumb tip"]
+    base -- "dovetail rails,<br/>slide on from the back" --> wedge["Wedge<br/>0°, 10° or 20°"]
+    modules -. "hand wiring" .-> pico
+    pico -. "USB cable,<br/>front exit" .-> host["Computer"]
+```
+
 ### Chord detection
 
 ```mermaid
@@ -58,13 +75,40 @@ stateDiagram-v2
 - **Five buttons**: one per finger and one for the thumb, giving 31
   combinations. See [0003](decisions/0003-five-buttons.md).
 - **Switches**: 12 × 12 mm tactile push buttons on a breadboard for the
-  prototype; MX-style switches in hot-swap sockets, hand-wired in a
+  prototype; low-profile Kailh Choc v2 switches in hot-swap sockets, hand-wired in a
   3D-printed shell, for the finished keypad, with a weight chosen per
   finger by testing. See [0007](decisions/0007-switches.md) and
-  [0010](decisions/0010-mx-style-switches.md).
+  [0023](decisions/0023-choc-v2-low-profile-switches.md).
 - **Enclosure**: a 3D-printed grip shell inspired by the Logitech MX Ergo,
   for the left hand first and mirrorable, tilted by swappable printed wedges
   from 0° to 30° and beyond. See [0011](decisions/0011-grip-shell.md).
+- **Shell CAD**: parametric build123d scripts in `cad/` that export STEP, STL
+  and preview PNGs for the left or right hand. See
+  [0016](decisions/0016-build123d-cad.md) and the [CAD README](../cad/README.md).
+- **Hand fit**: the shell is built from the user's own hand measurements,
+  kept in a git-ignored `cad/hand.local.toml`, with a medium adult hand from
+  ANSUR II for anything not measured. Each digit, the thumb included, rests
+  along a cap sized for it. See [0020](decisions/0020-hand-fitted-grip.md).
+- **Shell parts**: a solid, mouse-like shell shaped after the MX Ergo: highest
+  under the index knuckle, sloping gently down to the desk on the pinky side
+  and at the back, with five long caps flush with the surface, each running
+  along its digit and bending on a printed flexure at its back end, so the
+  whole hand rests on it and just presses. The fingers fan out across the
+  front at their relaxed spacing, within the body's width. Five key modules (a Choc
+  plate with the hot-swap socket below it; the pinky's lip has one corner
+  trimmed to clear its cap) slide into the shell from below;
+  the base, which holds the Pico at the back, presses them into their seats
+  with printed posts and a thumb block. Four M3 screws into heat-set inserts
+  close the shell, the Pico sits on four M2 screws into inserts, and the
+  wedges slide on from the back on dovetail rails. The USB cable stays plugged
+  in under the base, leaves at the front and stays level at every tilt. The 5 mm
+  RGB indicator LED sits just ahead of the thumb tip, in view. Under the
+  wrist and the pinky side of the palm the shell curves up like a rocker, so
+  that corner of the hand rests on the desk on every wedge, and each key
+  turns 10° about its fingertip so the hand leans onto it. See
+  [0017](decisions/0017-grip-shell-parts-and-fastening.md),
+  [0021](decisions/0021-long-hinged-caps-and-fanned-fingers.md) and
+  [0022](decisions/0022-rounded-heel-and-slanted-keys.md).
 - **CircuitPython firmware**: reads the buttons, detects chords and sends key
   presses through the built-in `usb_hid` module, with no downloaded libraries.
   See [0013](decisions/0013-circuitpython-with-built-in-modules-only.md).
@@ -167,4 +211,7 @@ The Pico is powered from the computer over USB. No battery.
 
 ## Not decided yet
 
-- CAD tool for the shell, chosen after the prototype.
+- Finger rests: a rest along the pinky, like the MX Ergo's, designed after
+  the first print shows the hand's fit.
+- Switch weight: long caps feel best with light switches; pick them by
+  testing a printed shell.

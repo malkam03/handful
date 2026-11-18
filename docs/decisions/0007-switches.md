@@ -34,4 +34,4 @@ PCB.
   wires once.
 - Each key can be placed and angled freely in the plate.
 - The plate's holes depend on the switch family; see
-  [0010](0010-mx-style-switches.md).
+  [0023](0023-choc-v2-low-profile-switches.md).

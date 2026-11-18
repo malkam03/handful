@@ -1,0 +1,13 @@
+# Design-time tools for the grip shell. Install into a separate venv:
+#   python3.13 -m venv .venv && .venv/bin/pip install -r requirements.txt
+# Licences: build123d and cadquery-ocp are Apache-2.0; OpenCASCADE inside
+# cadquery-ocp is LGPL-2.1 with the Open CASCADE exception (ADR 0016);
+# numpy is BSD-3-Clause; matplotlib uses its PSF-style licence; pytest and
+# pytest-xdist, which run the checks in parallel, are MIT.
+build123d==0.13.0
+cadquery-ocp-novtk==8.0.1.1.0
+cadquery-ocp-proxy==8.0.1.1.0
+numpy==2.5.4
+matplotlib==3.11.2
+pytest==9.2.0
+pytest-xdist==3.8.0

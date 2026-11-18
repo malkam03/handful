@@ -1,0 +1,35 @@
+# Your own hand, for a grip that fits it.
+#
+# Copy this file to hand.local.toml (git ignores *.local.toml), fill in what
+# you measured and build with
+#     .venv/bin/python build.py --params hand.local.toml
+# The parts go to build/, which git also ignores, and the committed previews
+# stay as they are.
+#
+# Measure your left hand flat, palm up, fingers together, in millimetres.
+# The letters match docs/hand-measurements.svg. Every entry is optional:
+# leave a line commented out and the default from handful_cad/params.py
+# stands. The values shown are the defaults, a medium adult hand.
+
+[hand]
+# hand_length = 187.2        # A: wrist crease to the middle fingertip
+# palm_length = 112.6        # B: wrist crease to the middle finger's base crease
+# hand_breadth = 83.3        # C: across the four knuckles, without the thumb
+# index_length = 69.4        # D: base crease to fingertip
+# middle_length = 74.6       # E
+# ring_length = 70.9         # F
+# pinky_length = 58.2        # G
+# index_knuckle_back = 0.0   # H: how far the base crease sits behind the middle finger's (negative if ahead)
+# ring_knuckle_back = 2.0    # I
+# pinky_knuckle_back = 8.0   # J
+# thumb_reach = 119.5        # K: wrist crease to the thumb tip, thumb alongside the index finger
+# thumb_tip_length = 27.3    # L: thumb tip to the crease of its last joint
+
+# Any other parameter from handful_cad/params.py can be set here too, for
+# example the thumb key's height once you have tried a printed shell.
+[params]
+# thumb_z = 18.0
+# Fingertip pads apart, centre to centre, with your hand relaxed on a table:
+# index to middle, middle to ring, ring to pinky. The fingers fan out to
+# these within the shell's width.
+# fingertip_spacing = [31.0, 37.0, 30.0]

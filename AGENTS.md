@@ -23,7 +23,11 @@ skill so the drawings and docs stay in step.
 ## Rules
 
 - Dependencies must be permissively licensed (MIT, BSD, Apache-2.0, Zlib or
-  similar). No GPL, LGPL or AGPL.
+  similar). No GPL or AGPL anywhere. LGPL or MPL is fine only in design-time
+  tools that are installed separately and not redistributed, such as the
+  OpenCASCADE kernel behind the CAD scripts in `cad/`
+  ([0016](docs/decisions/0016-build123d-cad.md)). Nothing GPL, LGPL, MPL or
+  AGPL ships in the firmware or on the device.
 - Don't copy code from other projects. Other keyboards and firmware are
   inspiration only.
 - The user wires the hardware; agents write the firmware. When firmware needs

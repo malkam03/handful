@@ -1,3 +1,6 @@
 __pycache__/
 .coverage
 .venv/
+cad/build/
+*.local.toml
+.DS_Store

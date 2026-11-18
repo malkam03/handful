@@ -29,8 +29,14 @@ There's also a printable [cheat sheet](docs/cheatsheet.svg).
 ## Status
 
 The firmware runs on a breadboard prototype with five tactile buttons. The
-current design is in [`docs/architecture.md`](docs/architecture.md), and each
-accepted decision is in [`docs/decisions/`](docs/decisions/).
+3D-printed grip shell for the finished keypad is modelled in
+[`cad/`](cad/README.md):
+
+![The left-hand grip shell, exploded: the five long caps above the shell, then the base with the key modules and the wedge below](cad/previews/exploded.png)
+
+The current design is in
+[`docs/architecture.md`](docs/architecture.md), and each accepted decision is
+in [`docs/decisions/`](docs/decisions/).
 
 ## Getting started
 
@@ -78,7 +84,11 @@ Then:
 - `coverage run -m unittest discover -s tests && coverage report` runs the
   tests on the computer and checks that they cover at least 90% of the code.
 
-GitHub Actions runs the lint and the tests on every pull request.
+The grip shell CAD has its own environment and checks; see
+[`cad/README.md`](cad/README.md).
+
+GitHub Actions runs the lint and the tests, and builds the grip shell, on
+every pull request.
 
 ## Inspiration
 
@@ -86,6 +96,13 @@ handful borrows ideas, not code, from
 [ARTSEY](https://artsey.io/), GKOS, the Twiddler,
 [tobychui/4xMacropad](https://github.com/tobychui/4xMacropad) and the combo
 features of [QMK](https://qmk.fm/) and [KMK](https://github.com/KMKfw/kmk_firmware).
+
+## Made with AI
+
+Vibe-built, to vibe code. handful is built with AI: AI coding agents (GitHub
+Copilot) wrote the firmware, the grip shell CAD, the tests and the
+documentation, and helped make the design decisions. The maintainer directs the work, reviews every change,
+wires the hardware, and prints and tests the parts by hand.
 
 ## Licence
 
