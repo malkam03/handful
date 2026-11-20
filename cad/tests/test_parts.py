@@ -116,17 +116,17 @@ class KeyModuleTest(Case):
         self.module = built("left")["key_module"]
 
     def test_own_modules_trim_only_the_lip_clear_of_the_clips(self):
-        # The clips sit on the switch's +-Y faces, across its middle.
+        # The clips sit on the switch's +-Y faces, across its middle. Without the
+        # pinky's lean its cap reaches the lip, so the trim has something to cut.
         clips = Box(BASE.switch_cutout - 1, BASE.module_outer, 2 * BASE.module_depth)
-        for hand in HANDS:
-            for name in BASE.own_module_keys:
-                trimmed = built(hand)[f"key_module_{name}"]
-                with self.subTest(hand=hand, key=name):
-                    cut = self.module - trimmed
-                    self.assertGreater(cut.volume, 1.0)
-                    self.assertLess(overlap(cut, clips), EPS)
-                    # Only the lip's top corner: the walls and floor stay whole.
-                    self.assertGreater(cut.bounding_box().min.Z, -BASE.switch_plate - 0.5)
+        lean = list(BASE.switch_lean)
+        lean[-1] = 0.0
+        params = BASE.with_(own_module_keys=("pinky",), switch_lean=tuple(lean))
+        cut = parts.key_module(params) - parts.module_for(params, "pinky")
+        self.assertGreater(cut.volume, 1.0)
+        self.assertLess(overlap(cut, clips), EPS)
+        # Only the lip's top corner: the walls and floor stay whole.
+        self.assertGreater(cut.bounding_box().min.Z, -BASE.switch_plate - 0.5)
 
     def test_switch_cutout_takes_a_14_mm_switch(self):
         plate = BASE.switch_plate
@@ -220,6 +220,7 @@ class AssemblyTest(Case):
         pairs = [
             ("shell", "base", p["shell"], p["base"]),
             ("pico", "shell", pico, p["shell"]),
+            ("pico", "base", pico, p["base"]),
             ("status LED", "shell", led, p["shell"]),
             ("status LED", "base", led, p["base"]),
             ("status LED", "pico", led, pico),
@@ -268,9 +269,9 @@ class AssemblyTest(Case):
         p = built(hand)
         for pose, module in zip(parts.poses(params), parts.placed_modules(params, p["key_module"])):
             with self.subTest(hand=hand, key=pose.name):
-                out = Pos(*(pose.axis * 0.3)) * module  # the lip stops on the shell's seat
+                out = Pos(*(pose.switch_axis * 0.3)) * module  # the lip stops on the shell's seat
                 self.assertGreater(overlap(out, p["shell"]), EPS)
-                down = Pos(*(pose.axis * -0.3)) * module  # a post or the thumb block holds it there
+                down = Pos(*(pose.switch_axis * -0.3)) * module  # a post or the thumb block holds it there
                 self.assertGreater(overlap(down, p["base"]), EPS)
 
     @cases(hand=HANDS)
@@ -284,7 +285,7 @@ class AssemblyTest(Case):
         for pose, module in zip(parts.poses(params), parts.placed_modules(params, built(hand)["key_module"])):
             module += pose.plate * switch
             # Fingers slide in along their press axis; the thumb rises straight up into its bay.
-            path = Vector(0, 0, -1) if pose.name == "thumb" else -pose.axis
+            path = Vector(0, 0, -1) if pose.name == "thumb" else -pose.switch_axis
             height = module.bounding_box().max.Z
             steps = int(height / abs(path.Z)) + 2
             for d in range(0, steps, 2):
@@ -345,6 +346,35 @@ class AssemblyTest(Case):
                 tunnel = parts._module_box(params, pose, c, length=parts._insertion_length(params, pose))
                 self.assertLess(overlap(tunnel & above_desk, trim), EPS)  # the tunnel stays closed
                 self.assertLess(overlap(parts._post(params, pose), trim), EPS)
+
+    @cases(hand=HANDS)
+    def test_pico_screws_up_under_its_bridges(self, hand):
+        params = BASE.with_(hand=hand)
+        shell = built(hand)["shell"]
+        pico = parts.pico_envelope(params)
+        self.assertGreater(overlap(Pos(0, 0, 0.3) * pico, shell), EPS)  # its back face rests on the bridges
+        r = params.m2_insert_hole / 2
+        for point in parts.pico_holes(params):
+            if params.mirrored:
+                point = Vector(-point.X, point.Y, point.Z)
+            with self.subTest(hand=hand, point=point):
+                up = (Align.CENTER, Align.CENTER, Align.MIN)
+                ring = Cylinder(r + params.insert_wall, params.m2_insert_depth, align=up) - Cylinder(r + 0.05, 40)
+                wall = Pos(point) * ring
+                self.assertGreater(overlap(wall, shell) / wall.volume, 0.99)
+
+    def test_pico_bridges_span_only_the_board(self):
+        params = BASE
+        shell = built("left")["shell"]
+        w, _, _ = params.pico_size
+        top = parts.pico_holes(params)[0].Z
+        down = (Align.CENTER, Align.CENTER, Align.MAX)
+        for point in parts.pico_holes(params)[:2]:
+            for width, hits in ((w + 2 * params.clearance, False), (w + 2.0, True)):
+                with self.subTest(y=point.Y, width=width):
+                    under = Pos(params.pico_x, point.Y, top) * Box(width, 2.0, 0.5, align=down)
+                    # The board slides up between the chamfers, which centre it.
+                    self.assertEqual(overlap(under, shell) > EPS, hits)
 
     def test_shell_screw_bosses_keep_their_walls(self):
         params = BASE
@@ -502,7 +532,8 @@ class CapTest(Case):
     def test_stop_pad_lands_on_the_shell(self):
         shell = built("left")["shell"]
         for pose in key_poses(BASE):
-            down = parts.pressed(BASE, pose.name, caps("left", True)[pose.name], BASE.cap_stop + 0.3)
+            # The pad alone: OpenCASCADE sometimes drops the overlap of the whole cap.
+            down = parts.pressed(BASE, pose.name, parts._stop_pad(BASE, pose), BASE.cap_stop + 0.3)
             with self.subTest(key=pose.name):
                 self.assertGreater(overlap(down, shell), EPS)
 

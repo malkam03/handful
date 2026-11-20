@@ -48,7 +48,7 @@ flowchart TB
     modules -- "slide in from below,<br/>lip stops on a seat" --> shell["Solid shell<br/>(palm rest, thumb side, fingers front)"]
     base["Base"] -- "posts and thumb block<br/>press the modules in" --> modules
     shell -- "4 × M3 screws into<br/>heat-set inserts" --> base
-    pico["Pico"] -- "4 × M2 screws into<br/>heat-set inserts" --> base
+    pico["Pico<br/>(upside down)"] -- "4 × M2 screws into<br/>inserts in two bridges" --> shell
     pico -. "GP26–GP28,<br/>one 330 Ω" .-> led["RGB LED<br/>ahead of the thumb tip"]
     base -- "dovetail rails,<br/>slide on from the back" --> wedge["Wedge<br/>0°, 10° or 20°"]
     modules -. "hand wiring" .-> pico
@@ -94,12 +94,14 @@ stateDiagram-v2
   and at the back, with five long caps flush with the surface, each running
   along its digit and bending on a printed flexure at its back end, so the
   whole hand rests on it and just presses. The fingers fan out across the
-  front at their relaxed spacing, within the body's width. Five key modules (a Choc
-  plate with the hot-swap socket below it; the pinky's lip has one corner
-  trimmed to clear its cap) slide into the shell from below;
-  the base, which holds the Pico at the back, presses them into their seats
+  front at their relaxed spacing, within the body's width. Five identical key modules (a Choc
+  plate with the hot-swap socket below it; the pinky's switch leans 18° out
+  to the pinky side to clear its cap)
+  slide into the shell from below. The Pico hangs upside down under two
+  bridges at the back of the shell, on four M2 screws into inserts, so
+  every wire stays in the shell. The base presses the modules into their seats
   with printed posts and a thumb block. Four M3 screws into heat-set inserts
-  close the shell, the Pico sits on four M2 screws into inserts, and the
+  close the shell, and the
   wedges slide on from the back on dovetail rails. The USB cable stays plugged
   in under the base, leaves at the front and stays level at every tilt. The 5 mm
   RGB indicator LED sits just ahead of the thumb tip, in view. Under the
@@ -107,6 +109,7 @@ stateDiagram-v2
   that corner of the hand rests on the desk on every wedge, and each key
   turns 10° about its fingertip so the hand leans onto it. See
   [0017](decisions/0017-grip-shell-parts-and-fastening.md),
+  [0024](decisions/0024-pico-hangs-in-the-shell.md),
   [0021](decisions/0021-long-hinged-caps-and-fanned-fingers.md) and
   [0022](decisions/0022-rounded-heel-and-slanted-keys.md).
 - **CircuitPython firmware**: reads the buttons, detects chords and sends key

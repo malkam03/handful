@@ -42,7 +42,7 @@ or PETG) and must open again to swap a switch or fix a wire.
   hand's edge reaches the desk. The back slopes gently down too, so the heel
   rests on both. The pinky side is full enough that the pinky's module sits
   inside the base, whose bottom stays closed. The default body is
-  102 × 138 × 46 mm above a 4.5 mm base, sized from the hand parameters.
+  102 × 138 × 46 mm above a 5.5 mm base, sized from the hand parameters.
 - **Body**: solid, with cavities for the key modules, the Pico, the wires,
   the USB plug and the status LED. Their walls are vertical or 45° roofs, or
   short bridges, so the shell prints rim-down with supports only under the
@@ -53,20 +53,27 @@ or PETG) and must open again to swap a switch or fix a wire.
   ([0021](0021-long-hinged-caps-and-fanned-fingers.md)). The four finger
   keys fan out across the front and press along nearly one shared axis, so
   their modules fit side by side; the thumb key is on the side and presses
-  straight sideways.
+  straight sideways. Where the pinky side falls steeply, the pinky's switch
+  leans 18° out towards it, so the housing's outer corner drops clear of the
+  cap wrapping down that side; its module moves 2 mm towards the ring
+  finger's and the ring's 3.5 mm towards the middle finger's, so all four
+  fit side by side above the base's floor. The wells, and each switch's
+  depth, leave room for the cap's 2.5 mm press to its stop.
 - **Key modules**: five flat parts, a 1.3 mm Choc plate with a floor
-  that holds the hot-swap socket like a PCB. They are identical except the
-  pinky's, whose lip has one corner trimmed where its cap's side reaches
-  down; that corner sits under the cap's well and seats against nothing. Each slides into its own cavity
+  that holds the hot-swap socket like a PCB. All five are identical;
+  the pinky's 18° lean keeps its cap's side clear of the lip. Each slides into its own cavity
   from below until its plate's lip stops on a seat in the shell. When the
   base goes on, a printed post (fingers) or a block (thumb) presses each
   module against its seat; a rib on the thumb block also stops the thumb
   module dropping. No screws hold the modules.
 - **Shell to base**: four M3 heat-set inserts in the shell and four
-  M3 socket-head screws from below, their heads sunk in counterbores. A rim on the base, just inside the
+  M3 socket-head screws from below, their heads sunk in counterbores. The
+  screws sit near the outline's four corners (thumb front, pinky front,
+  pinky back, thumb back), so the rim is held tight all round. A rim on the base, just inside the
   outline, fits a groove in the shell and guides it into place.
-- **Pico**: at the back, under the palm, with four M2 screws into heat-set
-  inserts in standoffs on the base. Its USB port faces the front; the plug
+- **Pico**: at the back, under the palm, hanging upside down under two
+  bridges in the shell, held by four M2 screws into heat-set inserts
+  ([0024](0024-pico-hangs-in-the-shell.md)). Its USB port faces the front; the plug
   sits in a channel between the middle and ring fingers' posts, and the
   cable runs on in a groove to the front edge. The cable is plugged in
   before the base goes on and stays captive, like a mouse's.
@@ -82,7 +89,8 @@ or PETG) and must open again to swap a switch or fix a wire.
 ## Consequences
 
 - Four M3 screws from below close the shell and hold all five modules at
-  once; five M2 screws from above hold the caps.
+  once; five M2 screws from above hold the caps, and four from below hold
+  the Pico in the shell.
 - Every thread is metal, so the device opens and closes many times.
 - Swapping the USB cable means opening the base, because the finger modules
   leave no room for a plug-sized passage to the front.

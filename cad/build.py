@@ -5,6 +5,11 @@ Usage (from the cad/ directory, with the CAD environment active):
     python build.py --hand both     # left and right
     python build.py --no-renders    # STEP and STL only
     python build.py --params hand.local.toml  # your own measurements
+    python build.py --no-cache      # build every part afresh
+
+The slow parts are kept in build/cache/ (handful_cad.store), shared with the
+tests, so a part built once for the same source and parameters loads from
+its file.
 
 A left-hand build with renders also refreshes the committed previews in
 previews/, which the READMEs show. A build with --params never does, so
@@ -12,6 +17,7 @@ personal measurements stay in the ignored build/ folder.
 """
 
 import argparse
+import os
 import shutil
 import time
 from pathlib import Path
@@ -20,7 +26,7 @@ from build123d import Compound, Pos, export_step, export_stl
 from OCP.BRepTools import BRepTools
 
 from handful_cad import hand as hand_file
-from handful_cad import parts
+from handful_cad import parts, store
 from handful_cad.params import DEFAULT, Params
 from handful_cad.render import render
 
@@ -113,7 +119,11 @@ def main() -> None:
     parser.add_argument("--out", type=Path, default=HERE / "build")
     parser.add_argument("--no-renders", action="store_true", help="skip the PNG previews")
     parser.add_argument("--params", type=Path, help="your hand measurements, e.g. hand.local.toml")
+    parser.add_argument("--no-cache", action="store_true", help="build every part afresh, ignoring build/cache/")
     args = parser.parse_args()
+    if args.no_cache:
+        os.environ["HANDFUL_CACHE"] = "0"
+    store.prune()
     try:
         overrides = hand_file.load(args.params) if args.params else None
     except (OSError, ValueError) as error:

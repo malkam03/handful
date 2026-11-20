@@ -40,7 +40,7 @@ python3.13 -m venv .venv
 
 Each hand takes about two minutes and writes to `build/<hand>/`:
 
-- `shell`, `base`, `key_module`, `key_module_pinky`, `cap_thumb` …
+- `shell`, `base`, `key_module`, `cap_thumb` …
   `cap_pinky` and
   `wedge_00` … `wedge_20`, each as `.stl` for the slicer and `.step` for other
   CAD tools;
@@ -58,9 +58,17 @@ Each hand takes about two minutes and writes to `build/<hand>/`:
 match the source. A left-hand build also refreshes `previews/`, which is
 committed so the design shows on GitHub.
 
-Run the checks with `.venv/bin/pytest`. It builds each part once, on every
-core, keeps them in `build/test-cache/` until the CAD source or the
-parameters change, and runs the tests in parallel (`pytest.ini`).
+The slow parts (shell, base, caps, the pinky's module and the hinge test
+slices) are kept in `build/cache/` as BREP files, filed under the CAD source
+and each part's arguments (all the parameters, the hand and the key). The
+tests and `build.py` share them, and each run keeps every part it builds in
+memory too, so the renders reuse them. A part built once for a set of
+parameters, such as your hand's or the default, loads from its file after
+that; changing a parameter or editing `handful_cad/` builds it again. `python build.py --no-cache` (or
+`HANDFUL_CACHE=0`) skips the files.
+
+Run the checks with `.venv/bin/pytest`. It builds each missing part once, on
+every core, and runs the tests in parallel (`pytest.ini`).
 They build every part for both hands and check that each is one closed solid,
 that the switch cutout takes a 14 mm Choc switch in a 1.3 mm plate, that the socket is
 held against the switch, that every cap's top over its switch sits `cap_proud` less the dish, presses until its
@@ -111,6 +119,10 @@ shell = parts.shell(params)
   `body_rear_extra`, `body_rear_crown` and `body_rear_squareness` (a longer,
   gentler, rounder back), `body_front_crown` (lower is a longer, straighter
   front ramp for the fingers), `body_height` and the margins.
+- **Screws**: `boss_angles` places the four M3 screws round the outline
+  (thumb front, pinky front corner, pinky back, thumb back), and
+  `boss_insets` sets each one's distance inside the inner wall; a screw
+  slides along the outline to clear the cavities and key wells.
 - **Locating rim**: `locating_lip_height`, `locating_lip_width`,
   `locating_lip_inset` and `locating_lip_boss_gap` for the wall on the base
   that guides the shell into place. `locating_lip_roof` sets how far above
@@ -123,7 +135,11 @@ shell = parts.shell(params)
   and its switch about the fingertip (10° by default), so the palm end
   swings towards the pinky and the hand leans onto the rounded heel;
   `thumb_back` and `thumb_cap_tilt` move the thumb tip back and tilt its cap
-  to follow the turned hand.
+  to follow the turned hand. `switch_lean` rolls a finger's switch about
+  its finger, out towards where the shell falls away (18° for the pinky, so
+  its housing clears the cap wrapping down that side), and `switch_shift`
+  moves a module across its finger (ring −3.5 mm, pinky −2 mm, towards the
+  thumb) so the modules fit side by side above the base's floor.
 - **Caps**: `cap_widths` (thumb to pinky), `cap_pip` (a finger cap's length
   as a share of the finger, tip to middle joint), `thumb_tip_length` and
   `thumb_proximal` (the thumb cap's length), `cap_proud` and `cap_gap`.
@@ -135,9 +151,9 @@ shell = parts.shell(params)
   is the one that reaches the base floor. A stop pad under each pad's
   fingertip end, `stop_pad_length` long, lands on the opening's floor once
   the stem has moved `cap_stop` (2.5 mm, past the 1.3 ± 0.3 mm actuation),
-  so the cap needs less room to swing and keeps more of its width. For the
-  keys in `own_module_keys` (the pinky) the module's lip gives up the corner
-  the cap's side swings past. The pad's
+  so the cap needs less room to swing and keeps more of its width. Keys listed
+  in `own_module_keys` (none by default) get their own module whose lip
+  gives up the corner the cap's side swings past. The pad's
   top is dished `cap_dish` (0.8 mm) along its centre line so the finger
   settles into it; the dish fades out over `cap_dish_fade` before the
   hinge. The
@@ -173,13 +189,13 @@ shell = parts.shell(params)
     where the hand rests, clean. The rounded heel underneath needs supports
     from the build plate only. The cavities inside have
     vertical walls, 45° roofs or short bridges (9 mm over the thumb module,
-    13 mm over the USB plug). The finger modules' 5 mm seat ledges lean 27°
+    13 mm over the USB plug, 21 mm for the Pico's two bridges). The finger modules' 5 mm seat ledges lean 27°
     and may sag slightly, which only seats the module a little lower. Use
     3–4 walls so the screw holes and seats are solid;
-  - **base**: flat on its bottom, standoffs up. The dovetail grooves underneath
+  - **base**: flat on its bottom, posts up. The dovetail grooves underneath
     are short bridges; the edge along the rounded heel needs supports from
     the build plate only;
-  - **key modules** (print 4 `key_module` and 1 `key_module_pinky`): each
+  - **key modules** (print 5 `key_module`): each
     leaning on its end, standing on the plate's lip and the floor's edge with
     the plate at about 58° to the bed. No supports, so the plate prints
     smooth, ready for the switch. A module touches the bed along two edges,
@@ -234,26 +250,31 @@ shell = parts.shell(params)
 
 1. With a soldering iron, press the M3 inserts into the four holes in the
    shell's bottom face, an M2 insert into the hole at the back end of each cap's opening
-   and the other M2 inserts into the four Pico standoffs on the base.
+   and the other M2 inserts into the four holes in the bridges across the
+   Pico's bay, at the back of the shell.
 2. Solder a wire to each tab of every hot-swap socket, then slide each socket
    into its key module's channel until it lines up with the switch holes.
 3. Clip a switch into each module. Turn the shell upside down and push each
    module into its cavity from below, switch first, until its lip stops on
-   the seat. The pinky takes `key_module_pinky`, the one with a lip corner
-   trimmed. Lead the socket wires along the channels to the Pico's bay.
+   the seat. Lead the socket wires along the channels to the Pico's bay.
 4. Push the status LED into its hole just ahead of the thumb key from the
    bay inside, until its flange stops. Solder a wire to each leg and lead
    them down to the main cavity.
-5. Screw the Pico to the back of the base, USB to the front, and plug in the
-   USB cable. Wire each switch
+5. Lay the Pico upside down in its bay, components towards you and USB to
+   the front, between the bridges' chamfers, and screw it up into the
+   bridges with four M2 × 4 screws. Keep the solder off the back of pins 1,
+   2, 19–22, 39 and 40, under the bridges, so the board sits flat. Plug in
+   the USB cable. Wire each switch
    between its GPIO pin and GND as in
    [0008](../docs/decisions/0008-direct-gpio-wiring.md). Wire the LED as in
    [0018](../docs/decisions/0018-rgb-indicator-led.md): blue to GP26 (pin
    31), green to GP27 (pin 32), red to GP28 (pin 34), and the common leg
-   through the resistor to GND (pin 38).
+   through the resistor to GND (pin 38). Everything is now in the shell,
+   so plug the cable into a computer and test every key and the LED before
+   closing it.
 6. Lay the cable in the groove that runs from the Pico's bay to the front of
-   the shell. Fit the base's rim into the groove inside the shell's edge, so the plug drops into
-   its channel, checking that the four posts and the thumb block meet their
+   the shell. Fit the base's rim into the groove inside the shell's edge,
+   checking that the four posts and the thumb block meet their
    modules, and screw it on from below. The posts and block press every
    module into its seat, and a rib on the block stops the thumb module
    dropping. The cable stays plugged in: to swap it, open the base.

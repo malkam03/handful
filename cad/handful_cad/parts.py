@@ -42,6 +42,7 @@ from OCP.BRepTools import BRepTools
 
 from .geometry import Body, KeyPose, _top_down, key_poses, led_pose, widening
 from .params import Params
+from .store import stored
 
 BIG = 400.0
 STL_TOLERANCE = (0.02, 0.1)  # linear (mm) and angular (rad) mesh tolerance of the exported STLs
@@ -77,7 +78,7 @@ def poses(params: Params) -> list:
     left = key_poses(params)
     if not params.mirrored:
         return left
-    keys = ("surface", "normal", "axis", "along", "module_along")
+    keys = ("surface", "normal", "axis", "along", "module_along", "module_axis", "module_shift")
     return [replace(p, **{k: getattr(p, k) and _mirror_vector(getattr(p, k)) for k in keys}) for p in left]
 
 
@@ -251,14 +252,17 @@ def _boss_points(params: Params) -> list:
     """The shell's screw bosses, set in from the body's outline at the
     insert's top, so a flared side keeps a roof over each insert. Each starts
     at its angle in ``boss_angles`` and slides round the outline, a step at a
-    time either way, to the nearest spot where its wall clears every cavity."""
+    time either way, to the nearest spot where its wall clears every cavity
+    and key well."""
     keepout = cavities(params) + _led_cut(params)
+    for pose in key_poses(params):
+        keepout += _key_well(params, pose)
     wall = Cylinder(params.insert_hole / 2 + params.insert_wall, params.insert_depth, align=BOTTOM)
     points = []
-    for angle in params.boss_angles:
+    for angle, inset in zip(params.boss_angles, params.boss_insets, strict=True):
         for step in range(0, params.boss_search + 1, 2):
             free = [
-                p for p in (_boss_point(params, angle + step), _boss_point(params, angle - step))
+                p for p in (_boss_point(params, angle + step, inset), _boss_point(params, angle - step, inset))
                 if (Pos(p) * wall & keepout).volume < 1e-3
             ]
             if free:
@@ -269,9 +273,9 @@ def _boss_points(params: Params) -> list:
     return points
 
 
-def _boss_point(params: Params, angle: float) -> Vector:
+def _boss_point(params: Params, angle: float, inset: float) -> Vector:
     thumb, pinky, front, back, centre = Body.of(params).slice(params.insert_depth + params.boss_roof)
-    r = params.wall + params.boss_inset
+    r = params.wall + inset
     c, s = math.cos(math.radians(angle)), math.sin(math.radians(angle))
     n = params.body_squareness if s >= 0 else params.body_rear_squareness
     t = abs(s) ** (2 / n) if s >= 0 else 0.0
@@ -288,11 +292,12 @@ def _boss_point(params: Params, angle: float) -> Vector:
 
 
 def _pico_centre(params: Params) -> Vector:
-    return Vector(params.pico_x, params.pico_rear_y + params.pico_size[1] / 2, params.pico_standoff)
+    """The centre of the board's component face, which faces down."""
+    return Vector(params.pico_x, params.pico_rear_y + params.pico_size[1] / 2, params.pico_face_z)
 
 
 def _usb_axis_z(params: Params) -> float:
-    return params.pico_standoff + params.pico_size[2] + params.pico_usb_height / 2
+    return params.pico_face_z - params.pico_usb_height / 2
 
 
 def _usb_front_y(params: Params) -> float:
@@ -684,7 +689,7 @@ def _insertion_length(params: Params, pose: KeyPose) -> float:
     along = pose.module_along or pose.along
     high = (params.module_lip_length / 2 + c) * abs(along.Z)
     high += _module_x_extent(params, pose)[1] + c * abs(pose.module_x_dir.Z)
-    return (pose.plate.position.Z + high) / pose.axis.Z + 1
+    return (pose.plate.position.Z + high) / pose.switch_axis.Z + 1
 
 
 def _floor(params: Params, pose: KeyPose, offset: float = 0.0) -> Location:
@@ -768,6 +773,44 @@ def _core(params: Params, grow: float = 0.0) -> Part:
     return gable & hip
 
 
+def pico_holes(params: Params) -> list:
+    """The Pico's four mounting holes, on its back face, in the left-hand frame."""
+    centre = _pico_centre(params)
+    hx, hy = params.pico_holes[0] / 2, params.pico_holes[1] / 2
+    z = centre.Z + params.pico_size[2]
+    return [Vector(centre.X + dx, centre.Y + dy, z) for dx in (-hx, hx) for dy in (-hy, hy)]
+
+
+def _pico_bridges(params: Params) -> Part:
+    """Two bridges across the Pico's bay, left standing when the bay is cut.
+    The board's back face screws up under them, each with two M2 inserts
+    pressed in from below. A 45 degree chamfer at each wall shortens the
+    bridged span to the board's width and centres the board."""
+    w, ch = params.core_half_width, params.pico_bridge_chamfer
+    x = params.pico_x
+    top = pico_holes(params)[0].Z
+    roof = top + params.core_wall_height + w  # above the bay's roof
+    points = [
+        (x - w - 1, top - ch - 1), (x - w, top - ch - 1), (x - w, top - ch), (x - w + ch, top),
+        (x + w - ch, top), (x + w, top - ch), (x + w, top - ch - 1), (x + w + 1, top - ch - 1),
+        (x + w + 1, roof), (x - w - 1, roof),
+    ]
+    half = params.pico_bridge_width / 2
+    rear, front = (p.Y for p in pico_holes(params)[:2])
+    bridges = _xz_prism(points, params.core_rear_y - 1, rear + half)
+    bridges += _xz_prism(points, front - half, _usb_front_y(params) + 2)
+    return bridges
+
+
+def _pico_insert_holes(params: Params) -> Part:
+    hole = Cylinder(params.m2_insert_hole / 2, params.m2_insert_depth + 1, align=BOTTOM)
+    holes = [Pos(p) * Pos(0, 0, -1) * hole for p in pico_holes(params)]
+    out = holes[0]
+    for h in holes[1:]:
+        out += h
+    return out
+
+
 def _troughs(params: Params) -> Part:
     """Wire channels along the bottom face: the finger tunnels to the thumb bay, and the thumb bay to the Pico's bay."""
     thumb, *fingers = key_poses(params)
@@ -790,7 +833,7 @@ def _cable_channel(params: Params) -> Part:
     _, b, _ = params.body_axes
     c = params.clearance
     w, h = params.usb_plug_size
-    y = _usb_front_y(params) - 2
+    y = _usb_front_y(params) - 0.5  # in front of the Pico's front bridge
     top = _usb_axis_z(params) + h / 2
     rear_up = (Align.CENTER, Align.MIN, Align.MIN)
     plug = Pos(params.pico_x, y, -1) * Box(w, params.usb_plug_length + 4, top + 1, align=rear_up)
@@ -830,12 +873,14 @@ def cavities(params: Params) -> Part:
     """Everything cut out of the solid shell from inside, in the left-hand frame."""
     thumb, *fingers = key_poses(params)
     c = params.clearance
-    out = _core(params) + _troughs(params) + _cable_channel(params) + _thumb_cavity(params, thumb)
+    out = _core(params) - _pico_bridges(params)
+    out += _troughs(params) + _cable_channel(params) + _thumb_cavity(params, thumb)
     for pose in fingers:
         out += _module_box(params, pose, c, length=_insertion_length(params, pose)) + _post(params, pose, c)
     return out
 
 
+@stored
 def shell(params: Params) -> Part:
     """The solid grip the hand rests on, with an opening for each flush cap. Prints rim-down."""
     # Where a switch pocket crosses the curved front at a shallow angle, the
@@ -882,6 +927,7 @@ def _shell(params: Params, pocket_grow: float) -> Part:
         part = cut
     for point in _boss_points(params):
         part -= Pos(point) * Pos(0, 0, -1) * Cylinder(params.insert_hole / 2, params.insert_depth + 1, align=BOTTOM)
+    part -= _pico_insert_holes(params)
     part -= _led_cut(params)
     if params.heel_angle:
         part -= _heel_cut(params)
@@ -1094,6 +1140,7 @@ def _hinge_test_box(params: Params) -> Part:
     return Pos(box.center().X, box.center().Y, 0) * Box(size.X, size.Y, size.Z)
 
 
+@stored
 def hinge_test(params: Params) -> Part:
     """A slice of the real shell round the middle finger's key: its cap well,
     switch pocket, module tunnel and anchor insert, at the shell's own curve
@@ -1103,6 +1150,7 @@ def hinge_test(params: Params) -> Part:
     return _largest(shell(params) & _hinge_test_box(params))
 
 
+@stored
 def hinge_test_base(params: Params) -> Part:
     """The matching slice of the base, with the module's post and the locating
     rim. The shell slice sits on it; a press loads both parts against the
@@ -1159,6 +1207,7 @@ def insert_test_plate(params: Params) -> Part:
     return part
 
 
+@stored
 def cap(params: Params, name: str, moving: bool = False) -> Part:
     """One long cap in place. ``moving``: the paddle and pusher only."""
     pose = next(p for p in key_poses(params) if p.name == name)
@@ -1170,6 +1219,7 @@ def caps(params: Params, moving: bool = False) -> dict:
     return {pose.name: cap(params, pose.name, moving) for pose in key_poses(params)}
 
 
+@stored
 def cap_print(params: Params, name: str) -> Part:
     """One cap stood on its side for printing, so the flexure's layers run along the strip."""
     pose = next(p for p in key_poses(params) if p.name == name)
@@ -1180,7 +1230,7 @@ def cap_print(params: Params, name: str) -> Part:
     return _handed(params, placed)
 
 
-@cache
+@stored
 def module_for(params: Params, name: str) -> Part:
     """The key module for one key, in its local frame. A key in
     ``own_module_keys`` gets its own: the lip's corner where the shell rolls
@@ -1260,8 +1310,9 @@ def _rim(params: Params, grow: float = 0.0) -> Part:
     return ring
 
 
+@stored
 def base(params: Params) -> Part:
-    """The bottom plate: holds the Pico and the key modules, screws to the shell, takes a wedge. Prints flat."""
+    """The bottom plate: holds the key modules, screws to the shell, takes a wedge. Prints flat."""
     c = params.clearance
     thumb, *fingers = key_poses(params)
     part = _footprint(params, 0, -params.base_thickness, params.base_thickness)
@@ -1273,16 +1324,6 @@ def base(params: Params) -> Part:
     for pose in fingers:
         rim -= _module_seat(params, pose, c)
     part += rim
-
-    centre = _pico_centre(params)
-    hx, hy = params.pico_holes[0] / 2, params.pico_holes[1] / 2
-    for dx in (-hx, hx):
-        for dy in (-hy, hy):
-            at = Pos(centre.X + dx, centre.Y + dy, 0)
-            part += at * Cylinder(params.pico_standoff_diameter / 2, params.pico_standoff, align=BOTTOM)
-            depth = params.m2_insert_depth
-            insert = Cylinder(params.m2_insert_hole / 2, depth, align=BOTTOM)
-            part -= at * Pos(0, 0, params.pico_standoff - depth) * insert
 
     # A post that stands over the USB plug's channel is notched round it.
     for pose in fingers:
@@ -1373,13 +1414,17 @@ def wedge(params: Params, angle: float) -> Part:
 
 
 def pico_envelope(params: Params) -> Part:
+    """The Pico upside down under its bridges: board, components, USB socket and screw heads."""
     w, length, t = params.pico_size
     centre = _pico_centre(params)
-    board = Pos(centre) * Box(w, length, t + params.pico_top_clearance, align=BOTTOM)
-    usb = Pos(centre.X, _usb_front_y(params), centre.Z + t) * Box(
+    board = Pos(centre) * Box(w, length, t, align=BOTTOM)
+    board += Pos(centre) * Box(w, length, params.pico_parts_height, align=TOP)
+    usb = Pos(centre.X, _usb_front_y(params), centre.Z) * Box(
         params.pico_usb_width, params.pico_usb_overhang + 1, params.pico_usb_height,
-        align=(Align.CENTER, Align.MAX, Align.MIN),
+        align=(Align.CENTER, Align.MAX, Align.MAX),
     )
+    for p in pico_holes(params):
+        board += Pos(p.X, p.Y, centre.Z) * Cylinder(params.m2_head / 2, params.m2_head_height, align=TOP)
     return _handed(params, board + usb)
 
 

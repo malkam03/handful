@@ -158,14 +158,23 @@ class KeyPose:
     # The switch module's along, where the cap turns away from it about the
     # press axis (the thumb's); None: the module lines up with the cap.
     module_along: Vector | None = None
+    # The switch module's press axis, where it leans away from the cap's
+    # (switch_lean); None: the module presses along the cap's axis.
+    module_axis: Vector | None = None
+    # How far the module's centre moves from under the key, square to the axis.
+    module_shift: Vector | None = None
 
     @property
     def x_dir(self) -> Vector:
         return self.along.cross(self.axis)
 
     @property
+    def switch_axis(self) -> Vector:
+        return self.module_axis or self.axis
+
+    @property
     def module_x_dir(self) -> Vector:
-        return (self.module_along or self.along).cross(self.axis)
+        return (self.module_along or self.along).cross(self.switch_axis)
 
     @property
     def plane(self) -> Plane:
@@ -175,8 +184,8 @@ class KeyPose:
     @property
     def plate(self) -> Location:
         """The switch plate's top face, recessed below the surface."""
-        origin = self.surface - self.axis * self.plate_depth
-        return Plane(origin=origin, x_dir=self.module_x_dir, z_dir=self.axis).location
+        origin = self.surface - self.axis * self.plate_depth + (self.module_shift or Vector())
+        return Plane(origin=origin, x_dir=self.module_x_dir, z_dir=self.switch_axis).location
 
 
 def _squared(along: Vector, axis: Vector) -> Vector:
@@ -201,13 +210,16 @@ def cap_depth(params: Params, pose: KeyPose, samples: int = 11) -> float:
         for i in range(samples):
             u = (i / (samples - 1) - 0.5) * width
             w = (j / (samples - 1) - 0.5) * length
-            point = pose.surface + x_dir * u + along * w
+            offset = x_dir * u + along * w + (pose.module_shift or Vector())
+            point = pose.surface + offset
+            # A leaning switch's housing rises towards one side.
+            rise = offset.dot(pose.axis)
             v = (point - pose.surface).dot(pose.along)
             floor = _top_down(surface, pose.surface + pose.along * v, -pose.axis)
             floor += params.cap_thickness + params.cap_roll_for(pose.name)
             drop = params.press_stop * (lever - hinge * v) / lever
             depth = min(floor, _top_down(under, point, -pose.axis))
-            deepest = max(deepest, depth + drop)
+            deepest = max(deepest, depth + drop + rise)
     return deepest
 
 
@@ -363,7 +375,8 @@ def finger_poses(params: Params) -> list:
     # modules sit side by side under the curved front without running into each other.
     mean = sum(normals[1:], normals[0]).normalized()
     poses = []
-    for name, (point, forward), normal, slant in zip(FINGERS, points, normals, params.cap_slant):
+    for name, (point, forward), normal, slant, lean in zip(FINGERS, points, normals, params.cap_slant,
+                                                          params.switch_lean):
         axis = (normal * (1 - params.finger_axis_blend) + mean * params.finger_axis_blend).normalized()
         along = _squared(-forward, axis)
         if slant:
@@ -376,7 +389,16 @@ def finger_poses(params: Params) -> list:
             normal = body.normal(point)
             axis = (normal * (1 - params.finger_axis_blend) + mean * params.finger_axis_blend).normalized()
             along = _squared(turned, axis)
-        poses.append(_recessed(params, KeyPose(name, point, normal, axis, along)))
+        module = None
+        if lean:
+            # The switch rolls about its finger, its press axis out towards
+            # the side where the shell falls away, so it follows the curve.
+            turn = math.radians(lean)
+            module = axis * math.cos(turn) + along.cross(axis) * math.sin(turn)
+        side = params.switch_shift[len(poses)]
+        shift = along.cross(axis) * side if side else None
+        pose = KeyPose(name, point, normal, axis, along, module_axis=module, module_shift=shift)
+        poses.append(_recessed(params, pose))
     return poses
 
 

@@ -107,6 +107,14 @@ class Params:
     # hand turns about the fingertips and the wrist moves over the rounded
     # heel, onto the desk.
     cap_slant: tuple = (10.0, 10.0, 10.0, 10.0)
+    # Per finger, index to pinky, in degrees: each switch rolls about its
+    # finger, its press axis leaning out towards the side where the shell
+    # falls away. Where the side falls steeply, the switch housing's outer
+    # corner then drops clear of the cap wrapping down that side.
+    switch_lean: tuple = (0.0, 0.0, 0.0, 18.0)
+    # Per finger, mm: the switch module moves this far across its finger,
+    # towards the pinky side (+), to keep clear of its neighbours and the base.
+    switch_shift: tuple = (0.0, 0.0, -3.5, -2.0)
     # Thumb key on the side. The thumb rests along its cap like the fingers
     # do: the switch sits under the middle of the thumb's last segment and
     # the cap ends under the thumb tip. thumb_reach is the wrist crease to the thumb tip, with
@@ -222,8 +230,8 @@ class Params:
     # The pusher under the cap rests on the stem's top. The switch actuates
     # at 1.3 +/- 0.3 mm [CHOC-V2] and bottoms out at 3.2 mm [CHOC]. A pad
     # under the cap's tip lands on its well's floor once the stem has moved
-    # cap_stop, well past actuation, so the cap's short swing needs less room
-    # round it. The shell leaves room for the full press_stop.
+    # cap_stop, well past actuation and short of bottoming out. The shell's
+    # wells and the switches' depths leave room for that press (press_stop).
     pusher_diameter: float = 5.5
     cap_stop: float = 2.5
     stop_pad_length: float = 3.0  # along the cap, at the fingertip end
@@ -279,8 +287,9 @@ class Params:
     module_wall: float = 1.2
     module_seat: float = 5.0  # lip length past the module walls at each end
     # Keys with their own module, its lip's corner trimmed where the pressed
-    # cap's side reaches it, so the cap keeps that corner.
-    own_module_keys: tuple = ("pinky",)
+    # cap's side reaches it, so the cap keeps that corner. The pinky's lean
+    # clears its cap, so every key shares one module by default.
+    own_module_keys: tuple = ()
     post_size: float = 9.0  # square section of the posts that hold the finger modules
     post_gap: float = 0.0  # between a post and its module; negative presses the module harder
     thumb_block: float = 8.0  # thickness of the block that holds the thumb module
@@ -297,9 +306,15 @@ class Params:
     pico_usb_overhang: float = 1.3  # [PICO]
     pico_usb_width: float = 8.0  # [PICO]
     pico_usb_height: float = 2.9  # ASSUMPTION: micro-USB socket height above the board
-    pico_top_clearance: float = 3.5  # ASSUMPTION: tallest part on top, the USB socket
-    pico_standoff: float = 3.0  # room for solder joints under the board
-    pico_standoff_diameter: float = 6.0  # [INSERT] room round an M2 insert
+    pico_parts_height: float = 3.5  # ASSUMPTION: tallest part on the component side, the USB socket
+    # The Pico hangs in the shell, components down, screwed up under two
+    # bridges across its bay. M2 screws go up through the board into inserts
+    # in the bridges, so the wiring stays in the shell and the base is a lid.
+    pico_face_z: float = 6.9  # the board's component face above the base: room for the socket and screw heads
+    # Along the board, centred on its holes: each bridge ends 5.0 mm from the
+    # board's end, clear of the GND pads at pins 3, 18, 23 and 38 (6.45 mm in).
+    pico_bridge_width: float = 6.0
+    pico_bridge_chamfer: float = 2.8  # 45 degrees at each wall: a shorter bridge that centres the board
     # The Pico lies under the palm, behind the finger modules, with its USB
     # socket facing forwards into the cable channel.
     pico_rear_y: float = -62.0  # rear edge of the board, from the base centre
@@ -310,7 +325,7 @@ class Params:
     usb_cable_diameter: float = 4.5  # ASSUMPTION
 
     # Base and fastening.
-    base_thickness: float = 4.5  # sinks an M3 socket head (3.0 mm + clearance) on a 1.3 mm floor
+    base_thickness: float = 5.5  # deep enough for the leaning pinky module's pocket; sinks an M3 head on a 2.3 mm floor
     # Under a module's pocket, so the bottom stays closed and the post still
     # holds the module up: three 0.2 mm layers, resting on the wedge or desk.
     base_floor: float = 0.6
@@ -320,12 +335,17 @@ class Params:
     locating_lip_inset: float = 1.8  # in from the body; leaves about 1.6 mm of skin outside the groove
     locating_lip_roof: float = 1.2  # the inset is measured this far above the groove
     locating_lip_boss_gap: float = 1.6  # the rim is notched to keep this far from each insert hole
-    boss_angles: tuple = (80.0, 185.0, 204.0, 304.0)  # from the thumb side: front, pinky side, two at the back
+    # From the thumb side, round the outline: thumb front, pinky front corner,
+    # pinky back, thumb back, so the four screws hold the rim at its corners.
+    boss_angles: tuple = (80.0, 140.0, 215.0, 304.0)
     boss_search: int = 60  # deg; how far a boss may slide either way to clear the cavities
-    boss_inset: float = 3.0  # boss centre inside the inner wall
+    # Each boss's centre inside the inner wall. The pinky front corner's sits
+    # closer to the wall, beside the pinky and ring modules; its insert keeps
+    # 1.5 mm of wall outside the knurls.
+    boss_insets: tuple = (3.0, 1.0, 3.0, 3.0)
     boss_roof: float = 1.5  # the inset is measured this far above the insert
     insert_hole: float = 4.0  # [INSERT] 0.5 mm under the knurls of an M3 x 6 insert 4.5 mm across (measured)
-    insert_depth: float = 7.0  # [INSERT] M3 x 6 insert + 1 mm; an M3 x 8 screw reaches 6.7 mm in
+    insert_depth: float = 7.0  # [INSERT] M3 x 6 insert + 1 mm; an M3 x 8 screw reaches 5.7 mm in
     m3_clearance: float = 3.4
     m3_head: float = 5.5  # [SCREW] M3 head diameter
     m3_head_height: float = 3.0  # [SCREW]
@@ -419,8 +439,8 @@ class Params:
 
     @property
     def press_stop(self) -> float:
-        """Stem height above the housing: the deepest press the shell leaves room for."""
-        return self.switch_stem_height - self.switch_housing_height
+        """How far the stem moves before the cap's stop pad lands: the deepest press the shell leaves room for."""
+        return self.cap_stop
 
     @property
     def wrist_y(self) -> float:
