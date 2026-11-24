@@ -47,8 +47,9 @@ def render_banner(mappings_path):
         text(6, 113, "Tap: fires when you lift.", 7.5, 400),
         text(6, 117.5, "Hold: fires after {} ms.".format(layout.settings.hold_ms), 7.5, 400),
         text(6, 122, HELD_MARKS["repeat"] + " repeats while held.", 7.5, 400, REPEAT),
-        text(6, 126.5, HELD_MARKS["cycle"] + " steps on until you lift.", 7.5, 400, REPEAT),
     ]
+    if "cycle" in layout.held:
+        out.append(text(6, 126.5, HELD_MARKS["cycle"] + " steps on until you lift.", 7.5, 400, REPEAT))
     column, gutter, x = 74, 3, 64
     pitch, card_h = 20.4, 17.6
     card = 0

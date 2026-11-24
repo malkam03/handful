@@ -66,6 +66,7 @@ class Layout:
         mac_raw = {config.parse_chord(k): v for k, v in module.MACOS.items()}
         win_raw = {config.parse_chord(k): v for k, v in module.WINDOWS.items()}
         chords = list(mac_raw) + [c for c in win_raw if c not in mac_raw]
+        self.held = {v[1] for v in list(mac_raw.values()) + list(win_raw.values()) if isinstance(v, tuple)}
         self.groups = []
         for (title, subtitle, belongs), colour in zip(GROUPS, HIGHLIGHT):
             group = sorted((c for c in chords if belongs(c)), key=lambda c: (bin(c).count("1"), c))

@@ -130,14 +130,17 @@ stateDiagram-v2
   serial console. See [0006](decisions/0006-mappings-py.md).
 - **Default layout**: single presses for push-to-talk, enter, paste, copy and
   backspace; thumb chords for their variants; more fingers for bigger actions;
-  I+R switches app and T+I+M opens search. Most actions fire once when held;
+  I+R opens Mission Control (Task View on Windows) and T+I+M opens search.
+  Most actions fire once when held;
   backspace and delete word repeat. Holding all five toggles the mode;
   unmapped chords do nothing, so adding the remaining fingers cancels. See
-  [0009](decisions/0009-default-mappings.md).
-- **Cycling hold**: a mapping marked `"cycle"`, such as switch app, keeps its
-  modifiers down while held and presses its key again every 500 ms, so the
-  computer's app switcher steps on until the fingers lift. See
-  [0019](decisions/0019-cycling-hold-for-app-switching.md).
+  [0009](decisions/0009-default-mappings.md) and
+  [0025](decisions/0025-cycling-hold-search-and-mission-control.md).
+- **Cycling hold**: a mapping marked `"cycle"`, such as `("CMD+TAB",
+  "cycle")` for switching apps, keeps its modifiers down while held and
+  presses its key again every 500 ms, so the computer's switcher steps on
+  until the fingers lift. No default chord uses it. See
+  [0025](decisions/0025-cycling-hold-search-and-mission-control.md).
 - **Chord usage counts**: with `COUNT_CHORDS = True` in `mappings.py`, the
   Pico counts how often each chord is tapped and held, with no order or
   times, and saves the totals to nvm at most once a minute. Off by default to

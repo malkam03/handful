@@ -23,6 +23,13 @@ def shipped_mappings():
     return m
 
 
+def cycling_mappings():
+    """The shipped mappings with switch app on I+R, to exercise "cycle"."""
+    m = shipped_mappings()
+    m.MACOS = dict(m.MACOS, **{"I+R": ("CMD+TAB", "cycle")})
+    return m
+
+
 class ParseChordTest(unittest.TestCase):
     def test_bits_and_order(self):
         self.assertEqual(config.parse_chord("T"), 1)
@@ -46,9 +53,9 @@ class LoadTest(unittest.TestCase):
         self.assertEqual(c.mode_chord, 31)
         for mode in ("macos", "windows"):
             self.assertEqual(len(c.sets[mode]), 17)
-        switch = c.sets["windows"][config.parse_chord("I+R")]
+        overview = c.sets["windows"][config.parse_chord("I+R")]
         self.assertEqual(
-            (switch.held, switch.keys, switch.modifiers), ("cycle", parse_keys("ALT+TAB"), parse_keys("ALT")))
+            (overview.held, overview.keys, overview.modifiers), ("once", parse_keys("WIN+TAB"), parse_keys("WIN")))
         p = config.parse_chord("P")
         self.assertTrue(c.sets["macos"][p].repeat)
         self.assertFalse(c.sets["macos"][config.parse_chord("M+R")].repeat)

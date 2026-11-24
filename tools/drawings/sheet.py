@@ -48,7 +48,7 @@ def chord_card(x, y, w, h, chord, name, mac, win, colour, tilt):
     return "".join(out)
 
 
-def sticky_note(x, y, w, h, settings):
+def sticky_note(x, y, w, h, settings, held):
     hold = settings.hold_ms
     rows = [
         ("Tap", "press, then lift every finger. It fires as you lift."),
@@ -57,6 +57,7 @@ def sticky_note(x, y, w, h, settings):
         (HELD_MARKS["cycle"], "keeps the switcher open and steps on until you lift."),
         ("Cancel", "squeeze in the other fingers before lifting."),
     ]
+    rows = [row for row in rows if row[0] != HELD_MARKS["cycle"] or "cycle" in held]
     out = ['<g transform="rotate(-1.5 {:.2f} {:.2f})">'.format(x + w / 2, y + h / 2)]
     out.append(sketch(rect_d(x, y, w, h), NOTE, "#d8c25a", 0.4))
     out.append('<rect x="{:.2f}" y="{:.2f}" width="16" height="5" fill="#e9e4d8" fill-opacity="0.85" '
@@ -99,7 +100,7 @@ def render(mappings_path):
         squiggle(12, 24.5, 44, COLOUR["P"], 1.1),
         text(12, 32, "chord cheat sheet for your left hand", 9.5, 400, GREY),
         hand(15, 37, 0.88),
-        sticky_note(10, 124, 68, 54, settings),
+        sticky_note(10, 124, 68, 54, settings, layout.held),
         mode_box(10, 186, settings.mode_chord),
     ]
 
