@@ -7,7 +7,7 @@ import _path  # noqa: F401
 from handful import app
 from handful.keys import parse_keys
 from handful.usage import Usage
-from test_config import shipped_mappings
+from test_config import cycling_mappings, shipped_mappings
 
 M, ALL = 4, 31
 
@@ -89,7 +89,7 @@ class AppTest(unittest.TestCase):
     def setUp(self):
         self.board = FakeBoard()
         with quiet():
-            self.app = app.App(self.board, app.load_settings(shipped_mappings))
+            self.app = app.App(self.board, app.load_settings(cycling_mappings))
 
     def drive(self, buttons, ms):
         """Hold `buttons` for `ms` milliseconds, stepping every millisecond."""

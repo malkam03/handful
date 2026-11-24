@@ -5,7 +5,7 @@ from handful import config
 from handful.keypad import PRESS, RELEASE, SEND, SET_MODE, Keypad
 from handful.keys import parse_keys
 from handful.usage import Usage
-from test_config import shipped_mappings
+from test_config import cycling_mappings
 
 T, I, M, R, P = 1, 2, 4, 8, 16
 ALL = 31
@@ -28,7 +28,7 @@ def hold(chord, until, at=0):
 
 class KeypadTest(unittest.TestCase):
     def setUp(self):
-        self.keypad = Keypad(config.load(shipped_mappings()), "macos")
+        self.keypad = Keypad(config.load(cycling_mappings()), "macos")
 
     def test_tap_sends_mode_specific_keys(self):
         self.assertEqual(run(self.keypad, tap(M)), [(SEND, parse_keys("CMD+V"))])
