@@ -19,7 +19,7 @@ flowchart LR
         chord["Chord detection<br/>(chord engine)"]
         mode["Mode: macOS / Windows<br/>(remembered)"]
         hid["USB keyboard reports<br/>(built-in usb_hid)"]
-        led["Onboard LED<br/>(GP25)"]
+        led["Onboard LED<br/>(GP25, dark when idle)"]
         scan --> chord --> mode --> hid
         mode -- GPIO --> led
         nvm["Saved mode and<br/>chord counts (nvm)"]
@@ -31,7 +31,7 @@ flowchart LR
     host["Computer<br/>(tools/usage.py reads the counts)"]
 
     buttons -- "GP2–GP6, active low" --> scan
-    mode -- "GP26–GP28, one 330 Ω<br/>(green macOS, blue Windows)" --> rgb
+    mode -- "GP26–GP28, one 330 Ω<br/>(green macOS, blue Windows,<br/>dark when idle)" --> rgb
     config --> mode
     hid -- USB HID --> host
     host -- "USB serial:<br/>usage / usage reset" --> nvm
@@ -121,6 +121,9 @@ stateDiagram-v2
 - **RGB indicator LED**: a common-cathode RGB LED on the shell, green in
   macOS mode and blue in Windows mode. See
   [0018](decisions/0018-rgb-indicator-led.md).
+- **LED timeout**: both LEDs go dark 5 s (`LED_TIMEOUT_MS`) after the last
+  button is released and light again at the next press; 0 keeps them on. See
+  [0025](decisions/0025-leds-go-dark-when-idle.md).
 - **Chord detection**: every button pressed until all are released forms one
   chord, sent on release. A chord held past the hold threshold (400 ms by
   default) is sent as a hold instead. See
@@ -151,8 +154,8 @@ The firmware lives in `firmware/` and is copied to the CIRCUITPY drive with
 longer has and leaves an existing `mappings.py` in place.
 
 - `code.py`: starts the app on the Pico.
-- `mappings.py`: timings (hold, repeat and cycle), the mode chord, the
-  `COUNT_CHORDS` switch and both mapping sets. Key names such as
+- `mappings.py`: timings (hold, repeat, cycle and LED timeout), the mode
+  chord, the `COUNT_CHORDS` switch and both mapping sets. Key names such as
   `CMD+SHIFT+4` are read by the firmware, so the file needs no imports.
 - `handful/` chord engine, plain Python with no hardware imports, tested on
   the computer (see Development in the README):
@@ -166,8 +169,8 @@ longer has and leaves an existing `mappings.py` in place.
     everywhere.
   - `app.py`: the main loop. It loads `mappings.py`, feeds button reads to
     the keypad, sends keys, retries the latest report when USB is busy,
-    saves the usage counts and answers `usage` and `usage reset` on the
-    serial console. It gets the board passed in, so tests run it with a fake board.
+    turns the LEDs off when idle, saves the usage counts and answers `usage`
+    and `usage reset` on the serial console. It gets the board passed in, so tests run it with a fake board.
   - `hid.py`: builds USB keyboard reports.
 - `handful/pico.py` board layer: button pins, the onboard and RGB LEDs, the USB keyboard
   device, serial console input, and the saved mode (byte 0) and usage counts
@@ -186,8 +189,9 @@ and prints them ranked, with the mapped chords not used yet and the unmapped
 chords pressed anyway. `--reset` clears them.
 
 The onboard LED is on in macOS mode and off in Windows mode; the RGB LED is
-green and blue. When `mappings.py` has a problem, the onboard LED and the
-RGB LED in red blink fast together. A held repeating action fires once at the
+green and blue. Both go dark 5 s after the last button is released and light
+again at the next press. When `mappings.py` has a problem, the onboard LED
+and the RGB LED in red blink fast together. A held repeating action fires once at the
 hold, then after another 400 ms repeats every 50 ms, like a normal keyboard.
 A held cycling action opens the switcher at the hold and steps on every
 500 ms.

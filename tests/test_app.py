@@ -20,6 +20,7 @@ class FakeBoard:
         self.buttons = 0
         self.mode = mode
         self.led = None
+        self.dark = None
         self.log = []
         self.fail_press = 0
         self.fail_release = 0
@@ -54,6 +55,10 @@ class FakeBoard:
 
     def show_mode(self, mode):
         self.led = mode == "macos"
+        self.dark = False
+
+    def lights_off(self):
+        self.dark = True
 
     def blink_error(self):
         self.blinking = True
@@ -67,6 +72,13 @@ class FakeBoard:
 
     def read_line(self):
         return self.lines.pop(0) if self.lines else None
+
+
+def shipped_mappings_with(**settings):
+    module = shipped_mappings()
+    for name, value in settings.items():
+        setattr(module, name, value)
+    return module
 
 
 def quiet():
@@ -89,6 +101,38 @@ class AppTest(unittest.TestCase):
 
     def test_shows_the_saved_mode_at_start(self):
         self.assertTrue(self.board.led)
+
+    def test_lights_go_dark_after_the_timeout_and_wake_on_a_press(self):
+        self.drive(0, 4999)
+        self.assertFalse(self.board.dark)
+        self.drive(0, 1)
+        self.assertTrue(self.board.dark)
+        self.drive(M, 20)
+        self.assertFalse(self.board.dark)
+        self.assertTrue(self.board.led)
+
+    def test_held_button_keeps_the_lights_on(self):
+        self.drive(M, 8000)
+        self.assertFalse(self.board.dark)
+        self.drive(0, 4990)
+        self.assertFalse(self.board.dark)
+        self.drive(0, 20)
+        self.assertTrue(self.board.dark)
+
+    def test_mode_change_shows_the_new_mode_then_goes_dark(self):
+        self.drive(ALL, 450)
+        self.drive(0, 4990)
+        self.assertEqual((self.board.led, self.board.dark), (False, False))
+        self.drive(0, 20)
+        self.assertTrue(self.board.dark)
+
+    def test_zero_timeout_keeps_the_lights_on(self):
+        board = FakeBoard()
+        with quiet():
+            self.app = app.App(board, app.load_settings(lambda: shipped_mappings_with(LED_TIMEOUT_MS=0)))
+        self.board = board
+        self.drive(0, 60000)
+        self.assertFalse(board.dark)
 
     def test_tap_presses_and_releases(self):
         self.drive(M, 20)

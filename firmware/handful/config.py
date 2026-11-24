@@ -23,7 +23,7 @@ class Action:
 
 class Config:
     def __init__(self, hold_ms, repeat_delay_ms, repeat_interval_ms, mode_chord, sets, count_chords=False,
-                 cycle_interval_ms=500):
+                 cycle_interval_ms=500, led_timeout_ms=5000):
         self.hold_ms = hold_ms
         self.repeat_delay_ms = repeat_delay_ms
         self.repeat_interval_ms = repeat_interval_ms
@@ -31,6 +31,7 @@ class Config:
         self.mode_chord = mode_chord
         self.sets = sets
         self.count_chords = count_chords
+        self.led_timeout_ms = led_timeout_ms
 
 
 def parse_chord(text):
@@ -69,10 +70,11 @@ def _parse_action(value):
     return Action(parse_keys(value))
 
 
-def _setting(module, name, default, errors):
+def _setting(module, name, default, errors, minimum=1):
     value = getattr(module, name, default)
-    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
-        errors.append("{} must be a whole number of milliseconds above 0, got {!r}".format(name, value))
+    if not isinstance(value, int) or isinstance(value, bool) or value < minimum:
+        errors.append("{} must be a whole number of milliseconds {}, got {!r}".format(
+            name, "above 0" if minimum else "from 0 up", value))
         return default
     return value
 
@@ -84,6 +86,7 @@ def load(module):
     repeat_delay_ms = _setting(module, "REPEAT_DELAY_MS", 400, errors)
     repeat_interval_ms = _setting(module, "REPEAT_INTERVAL_MS", 50, errors)
     cycle_interval_ms = _setting(module, "CYCLE_INTERVAL_MS", 500, errors)
+    led_timeout_ms = _setting(module, "LED_TIMEOUT_MS", 5000, errors, minimum=0)
 
     count_chords = getattr(module, "COUNT_CHORDS", False)
     if not isinstance(count_chords, bool):
@@ -125,4 +128,5 @@ def load(module):
 
     if errors:
         raise MappingError("\n".join(errors))
-    return Config(hold_ms, repeat_delay_ms, repeat_interval_ms, mode_chord, sets, count_chords, cycle_interval_ms)
+    return Config(hold_ms, repeat_delay_ms, repeat_interval_ms, mode_chord, sets, count_chords, cycle_interval_ms,
+                  led_timeout_ms)

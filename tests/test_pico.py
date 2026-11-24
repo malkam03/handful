@@ -87,6 +87,11 @@ class PicoTest(unittest.TestCase):
         self.pico.show_mode("windows")
         self.assertEqual(self.lit(), (False, False, False, True))
 
+    def test_lights_off_turns_both_leds_off(self):
+        self.pico.show_mode("macos")
+        self.pico.lights_off()
+        self.assertEqual(self.lit(), (False, False, False, False))
+
     def test_never_two_colours_at_once_while_switching(self):
         rgb = self.leds[1:]
         seen = []
