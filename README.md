@@ -49,7 +49,8 @@ in [`docs/decisions/`](docs/decisions/).
    modules built into CircuitPython, so nothing is downloaded.
 3. Edit `mappings.py` on the CIRCUITPY drive to change what each chord does.
    The LED is on in macOS mode and off in Windows mode (the RGB LED is green
-   and blue); hold all five buttons to switch.
+   and blue), and goes dark 5 s after the last press; hold all five buttons
+   to switch.
 4. Print the [cheat sheet](docs/cheatsheet.svg).
 
 ## Tuning the layout

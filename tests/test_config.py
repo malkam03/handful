@@ -54,6 +54,7 @@ class LoadTest(unittest.TestCase):
         self.assertFalse(c.sets["macos"][config.parse_chord("M+R")].repeat)
         self.assertEqual(c.sets["windows"][config.parse_chord("M")].keys, parse_keys("CTRL+V"))
         self.assertFalse(c.count_chords)
+        self.assertEqual(c.led_timeout_ms, 5000)
 
     def test_count_chords_can_be_turned_on(self):
         self.assertTrue(config.load(module(COUNT_CHORDS=True)).count_chords)
@@ -62,6 +63,13 @@ class LoadTest(unittest.TestCase):
         c = config.load(module())
         self.assertEqual((c.hold_ms, c.repeat_delay_ms, c.repeat_interval_ms, c.mode_chord), (400, 400, 50, 31))
         self.assertEqual(c.cycle_interval_ms, 500)
+        self.assertEqual(c.led_timeout_ms, 5000)
+
+    def test_led_timeout_can_be_zero_but_not_negative(self):
+        self.assertEqual(config.load(module(LED_TIMEOUT_MS=0)).led_timeout_ms, 0)
+        with self.assertRaises(config.MappingError) as ctx:
+            config.load(module(LED_TIMEOUT_MS=-1))
+        self.assertIn("LED_TIMEOUT_MS must be a whole number of milliseconds from 0 up", str(ctx.exception))
 
     def test_cycle_needs_a_modifier_and_a_key(self):
         for keys in ("TAB", "CMD+SHIFT"):

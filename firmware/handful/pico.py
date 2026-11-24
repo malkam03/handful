@@ -110,6 +110,10 @@ class Pico:
         """Onboard LED on for macOS and off for Windows; RGB LED green for macOS and blue for Windows."""
         self._light(mode == "macos", MODE_COLOURS[mode])
 
+    def lights_off(self):
+        """Onboard LED and RGB LED off."""
+        self._light(False, OFF)
+
     def blink_error(self):
         """Blink the onboard LED and the RGB LED in red, fast, forever.
 

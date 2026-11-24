@@ -1,12 +1,15 @@
 """The keypad main loop. Plain Python: the board is passed in, so tests can use a fake one.
 
 A board provides: DEBOUNCE_MS, now(), read(), press(keys), release_all(),
-load_mode(), save_mode(mode), show_mode(mode), blink_error(), load_usage(),
+load_mode(), save_mode(mode), show_mode(mode), lights_off(), blink_error(), load_usage(),
 save_usage(data) and read_line(). press() and release_all() raise OSError when
 USB isn't ready. read_line() returns a line typed on the serial console, or None.
 
 Typing "usage" on the serial console prints the chord counts; "usage reset"
 clears them. tools/usage.py does both from the computer.
+
+The LEDs show the mode for LED_TIMEOUT_MS after the last button press or mode
+change, then go dark until the next press.
 """
 
 import time
@@ -46,6 +49,9 @@ class App:
         self.debouncer = Debouncer(len(config.BUTTONS), board.DEBOUNCE_MS)
         # The report still to send when USB was busy: keys to hold, () for none, None when sent.
         self.pending = None
+        self.led_timeout_ms = settings.led_timeout_ms
+        self.lit = True
+        self.lit_at = board.now()
         board.show_mode(self.keypad.mode)
         print("handful ready, mode:", self.keypad.mode)
         if self.counting:
@@ -71,11 +77,23 @@ class App:
                 self.board.save_mode(value)
                 self.board.show_mode(value)
                 print("handful mode:", value)
+        self._update_lights(pressed, now)
         # Saves a minute after the first new count, and keeps the timer clear of the tick wrap.
         if not self.usage.changed:
             self.saved_at = now
         elif ticks_diff(now, self.saved_at) >= USAGE_SAVE_MS:
             self._save_usage(now)
+
+    def _update_lights(self, pressed, now):
+        # A held button keeps the lights on; they go dark LED_TIMEOUT_MS after it lifts.
+        if pressed:
+            self.lit_at = now
+            if not self.lit:
+                self.board.show_mode(self.keypad.mode)
+                self.lit = True
+        elif self.lit and self.led_timeout_ms and ticks_diff(now, self.lit_at) >= self.led_timeout_ms:
+            self.board.lights_off()
+            self.lit = False
 
     def _save_usage(self, now):
         self.board.save_usage(self.usage.to_bytes())

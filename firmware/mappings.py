@@ -15,6 +15,7 @@
 # Chords that aren't listed do nothing.
 #
 # LED on (RGB LED green): macOS mode. LED off (RGB LED blue): Windows mode.
+# The LEDs go dark LED_TIMEOUT_MS after the last press and light at the next.
 # Fast blink (RGB LED red): this file has a problem; the serial console says
 # what it is.
 
@@ -26,6 +27,9 @@ REPEAT_INTERVAL_MS = 50
 # A cycling hold opens the switcher at the hold, then moves on one step this
 # often until you lift.
 CYCLE_INTERVAL_MS = 500
+# The LEDs show the mode for this long after the last press, then go dark.
+# 0 keeps them on.
+LED_TIMEOUT_MS = 5000
 
 # Hold this chord to switch between macOS and Windows. Tapping it does nothing.
 MODE_CHORD = "T+I+M+R+P"
