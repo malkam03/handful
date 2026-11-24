@@ -16,7 +16,7 @@ needs two chords. On Windows, Win+Tab opens Task View, which shows open
 windows and virtual desktops. Spotlight is Cmd+Space on macOS, and Win+S
 opens search on Windows.
 
-Every action is pressed and then fully released
+A plain action is pressed and then fully released
 ([0009](0009-default-mappings.md)), and a held chord is frozen
 ([0005](0005-chords-fire-on-release.md)). An app switcher such as Cmd+Tab only
 walks through apps if its modifier stays down while the key repeats.
@@ -34,12 +34,13 @@ walks through apps if its modifier stays down while the key repeats.
 
 ## Decision
 
-We will put Mission Control on I+R, the easy pair that switch app used.
-Switch app leaves the default layout.
+We will put the window overview on I+R, an easy pair: Mission Control on
+macOS and Task View on Windows. The default layout has no app-switching
+chord.
 
 | Chord | Action | macOS | Windows | Held |
 | --- | --- | --- | --- | --- |
-| I+R | Mission Control | Ctrl+Up | Win+Tab | once |
+| I+R | Window overview | Ctrl+Up (Mission Control) | Win+Tab (Task View) | once |
 | T+I+M | Search | Cmd+Space | Win+S | once |
 
 The firmware keeps the `"cycle"` held behaviour, written as

@@ -39,7 +39,7 @@ We will ship this layout. T is thumb, I index, M middle, R ring, P pinky.
 | M+R | Undo | Cmd+Z | Ctrl+Z | once |
 | T+M+R | Redo | Cmd+Shift+Z | Ctrl+Y | once |
 | T+I+M | Search | Cmd+Space | Win+S | once |
-| I+R | Mission Control | Ctrl+Up | Win+Tab | once |
+| I+R | Window overview | Ctrl+Up (Mission Control) | Win+Tab (Task View) | once |
 | R+P | Escape | Esc | Esc | once |
 | I+M | Region screenshot | Cmd+Shift+4 | Win+Shift+S | once |
 | I+M+R | Full screenshot | Cmd+Shift+3 | Win+PrtScn | once |

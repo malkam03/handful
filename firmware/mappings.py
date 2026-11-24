@@ -51,7 +51,7 @@ MACOS = {
     "T+M+R": "CMD+SHIFT+Z",  # redo
     "R+P": "ESCAPE",  # escape
     "T+I+M": "CMD+SPACE",  # search
-    "I+R": "CTRL+UP",  # mission control
+    "I+R": "CTRL+UP",  # window overview
     "I+M": "CMD+SHIFT+4",  # region screenshot
     "I+M+R": "CMD+SHIFT+3",  # full screenshot
     "I+M+R+P": "CMD+A",  # select all
@@ -71,7 +71,7 @@ WINDOWS = {
     "T+M+R": "CTRL+Y",  # redo
     "R+P": "ESCAPE",  # escape
     "T+I+M": "WIN+S",  # search
-    "I+R": "WIN+TAB",  # task view
+    "I+R": "WIN+TAB",  # window overview
     "I+M": "WIN+SHIFT+S",  # region screenshot
     "I+M+R": "WIN+PRINT_SCREEN",  # full screenshot
     "I+M+R+P": "CTRL+A",  # select all
